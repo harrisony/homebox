@@ -1217,6 +1217,12 @@ paths:
       - Items Attachments
   /v1/items/{id}/maintenance:
     get:
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -1231,6 +1237,11 @@ paths:
       - Maintenance
     post:
       parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
       - description: Entry Data
         in: body
         name: payload
@@ -1251,6 +1262,17 @@ paths:
       - Maintenance
   /v1/items/{id}/maintenance/{entry_id}:
     delete:
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Maintenance ID
+        in: path
+        name: entry_id
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -1263,6 +1285,16 @@ paths:
       - Maintenance
     put:
       parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Maintenance ID
+        in: path
+        name: entry_id
+        required: true
+        type: string
       - description: Entry Data
         in: body
         name: payload

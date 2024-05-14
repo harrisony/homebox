@@ -920,6 +920,15 @@ const docTemplate = `{
                     "Maintenance"
                 ],
                 "summary": "Get Maintenance Log",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -943,6 +952,13 @@ const docTemplate = `{
                 ],
                 "summary": "Create Maintenance Entry",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "Entry Data",
                         "name": "payload",
@@ -979,6 +995,20 @@ const docTemplate = `{
                 "summary": "Update Maintenance Entry",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Maintenance ID",
+                        "name": "entry_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Entry Data",
                         "name": "payload",
                         "in": "body",
@@ -1010,6 +1040,22 @@ const docTemplate = `{
                     "Maintenance"
                 ],
                 "summary": "Delete Maintenance Entry",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Maintenance ID",
+                        "name": "entry_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "204": {
                         "description": "No Content"
