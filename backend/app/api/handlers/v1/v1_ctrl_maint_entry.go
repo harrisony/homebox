@@ -15,6 +15,7 @@ import (
 //	@Summary	Get Maintenance Log
 //	@Tags		Maintenance
 //	@Produce	json
+//	@Param		id	path		string	true	"Item ID"
 //	@Success	200	{object}	repo.MaintenanceLog
 //	@Router		/v1/items/{id}/maintenance [GET]
 //	@Security	Bearer
@@ -32,6 +33,7 @@ func (ctrl *V1Controller) HandleMaintenanceLogGet() errchain.HandlerFunc {
 //	@Summary	Create Maintenance Entry
 //	@Tags		Maintenance
 //	@Produce	json
+//	@Param		id		path		string						true	"Item ID"
 //	@Param		payload	body		repo.MaintenanceEntryCreate	true	"Entry Data"
 //	@Success	201		{object}	repo.MaintenanceEntry
 //	@Router		/v1/items/{id}/maintenance [POST]
@@ -50,6 +52,8 @@ func (ctrl *V1Controller) HandleMaintenanceEntryCreate() errchain.HandlerFunc {
 //	@Summary	Delete Maintenance Entry
 //	@Tags		Maintenance
 //	@Produce	json
+//	@Param		id			path	string	true	"Item ID"
+//	@Param		entry_id	path	string	true	"Maintenance ID"
 //	@Success	204
 //	@Router		/v1/items/{id}/maintenance/{entry_id} [DELETE]
 //	@Security	Bearer
@@ -68,8 +72,10 @@ func (ctrl *V1Controller) HandleMaintenanceEntryDelete() errchain.HandlerFunc {
 //	@Summary	Update Maintenance Entry
 //	@Tags		Maintenance
 //	@Produce	json
-//	@Param		payload	body		repo.MaintenanceEntryUpdate	true	"Entry Data"
-//	@Success	200		{object}	repo.MaintenanceEntry
+//	@Param		id			path		string						true	"Item ID"
+//	@Param		entry_id	path		string						true	"Maintenance ID"
+//	@Param		payload		body		repo.MaintenanceEntryUpdate	true	"Entry Data"
+//	@Success	200			{object}	repo.MaintenanceEntry
 //	@Router		/v1/items/{id}/maintenance/{entry_id} [PUT]
 //	@Security	Bearer
 func (ctrl *V1Controller) HandleMaintenanceEntryUpdate() errchain.HandlerFunc {
