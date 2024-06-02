@@ -1337,11 +1337,13 @@ paths:
       - Items
   /v1/items/export:
     get:
+      produces:
+      - text/tsv
       responses:
         "200":
-          description: text/csv
+          description: OK
           schema:
-            type: string
+            type: file
       security:
       - Bearer: []
       summary: Export Items

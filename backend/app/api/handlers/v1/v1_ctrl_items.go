@@ -316,7 +316,8 @@ func (ctrl *V1Controller) HandleItemsImport() errchain.HandlerFunc {
 //
 //	@Summary	Export Items
 //	@Tags		Items
-//	@Success	200	{string}	string	"text/csv"
+//	@Success	200	{file}	file
+//	@Produce	text/tsv
 //	@Router		/v1/items/export [GET]
 //	@Security	Bearer
 func (ctrl *V1Controller) HandleItemsExport() errchain.HandlerFunc {
