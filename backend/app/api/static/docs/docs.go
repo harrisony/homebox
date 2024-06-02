@@ -491,15 +491,18 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
+                "produces": [
+                    "text/tsv"
+                ],
                 "tags": [
                     "Items"
                 ],
                 "summary": "Export Items",
                 "responses": {
                     "200": {
-                        "description": "text/csv",
+                        "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "type": "file"
                         }
                     }
                 }
