@@ -18,7 +18,12 @@
 		"vscode": {
 			// Add the IDs of extensions you want installed when the container is created.
 			"extensions": [
-				"dbaeumer.vscode-eslint"
+				"dbaeumer.vscode-eslint",
+				"bradlc.vscode-tailwindcss",
+				"redhat.vscode-yaml",
+				"golang.go",
+				"task.vscode-task",
+				"Vue.volar"
 			]
 		}
 	},
