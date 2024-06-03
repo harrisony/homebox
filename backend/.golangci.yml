@@ -1,7 +1,5 @@
 run:
   timeout: 10m
-  skip-dirs:
-    - internal/data/ent.*
 linters-settings:
   goconst:
     min-len: 5
@@ -72,3 +70,5 @@ linters:
 issues:
   exclude-use-default: false
   fix: true
+  exclude-dirs:
+    - internal/data/ent.*
