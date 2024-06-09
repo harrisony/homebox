@@ -80,12 +80,12 @@ func run(cfg *config.Config) error {
 		log.Fatal().Err(err).Msg("failed to create data directory")
 	}
 
-	c, err := ent.Open("sqlite3", cfg.Storage.SqliteURL)
+	c, err := ent.Open(cfg.Storage.Driver, cfg.Storage.DatabaseURL)
 	if err != nil {
 		log.Fatal().
 			Err(err).
-			Str("driver", "sqlite").
-			Str("url", cfg.Storage.SqliteURL).
+			Str("driver", cfg.Storage.Driver).
+			Str("url", cfg.Storage.DatabaseURL).
 			Msg("failed opening connection to sqlite")
 	}
 	defer func(c *ent.Client) {
@@ -118,7 +118,7 @@ func run(cfg *config.Config) error {
 		log.Fatal().
 			Err(err).
 			Str("driver", "sqlite").
-			Str("url", cfg.Storage.SqliteURL).
+			Str("url", cfg.Storage.DatabaseURL).
 			Msg("failed creating schema resources")
 	}
 
