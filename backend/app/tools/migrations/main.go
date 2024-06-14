@@ -9,12 +9,16 @@ import (
 	"github.com/hay-kot/homebox/backend/internal/data/ent/migrate"
 
 	atlas "ariga.io/atlas/sql/migrate"
+	_ "ariga.io/atlas/sql/postgres"
 	_ "ariga.io/atlas/sql/sqlite"
+
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql/schema"
+	_ "github.com/jackc/pgx/v5"
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// TODO
 func main() {
 	ctx := context.Background()
 	// Create a local migration directory able to understand Atlas migration file format for replay.

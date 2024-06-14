@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"github.com/nullism/bqb"
 	"strings"
 	"time"
 
@@ -159,19 +160,20 @@ func (r *GroupRepository) StatsLabelsByPurchasePrice(ctx context.Context, GID uu
 
 func (r *GroupRepository) StatsPurchasePrice(ctx context.Context, GID uuid.UUID, start, end time.Time) (*ValueOverTime, error) {
 	// Get the Totals for the Start and End of the Given Time Period
-	q := `
-	SELECT
-		(SELECT Sum(purchase_price)
-			FROM   items
-			WHERE  group_items = ?
-				AND items.archived = false
-				AND items.created_at < ?) AS price_at_start,
-		(SELECT Sum(purchase_price)
-			FROM   items
-			WHERE  group_items = ?
-				AND items.archived = false
-				AND items.created_at < ?) AS price_at_end
-`
+	q := bqb.New(`
+		SELECT
+			(SELECT Sum(purchase_price)
+				FROM   items
+				WHERE  group_items = ?
+					AND items.archived = false
+					AND items.created_at < ?) AS price_at_start,
+			(SELECT Sum(purchase_price)
+				FROM   items
+				WHERE  group_items = ?
+					AND items.archived = false
+					AND items.created_at < ?) AS price_at_end`,
+		GID, sqliteDateFormat(start), GID, sqliteDateFormat(end))
+
 	stats := ValueOverTime{
 		Start: start,
 		End:   end,
@@ -179,9 +181,13 @@ func (r *GroupRepository) StatsPurchasePrice(ctx context.Context, GID uuid.UUID,
 
 	var maybeStart *float64
 	var maybeEnd *float64
+	query, params, err := r.db.ToSql(q)
+	if err != nil {
+		return nil, err
+	}
 
-	row := r.db.Sql().QueryRowContext(ctx, q, GID, sqliteDateFormat(start), GID, sqliteDateFormat(end))
-	err := row.Scan(&maybeStart, &maybeEnd)
+	row := r.db.Sql().QueryRowContext(ctx, query, params...)
+	err = row.Scan(&maybeStart, &maybeEnd)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +233,7 @@ func (r *GroupRepository) StatsPurchasePrice(ctx context.Context, GID uuid.UUID,
 }
 
 func (r *GroupRepository) StatsGroup(ctx context.Context, GID uuid.UUID) (GroupStatistics, error) {
-	q := `
+	q := bqb.New(`
 		SELECT
 			(SELECT COUNT(*) FROM users WHERE group_users = ?) AS total_users,
 			(SELECT COUNT(*) FROM items WHERE group_items = ? AND items.archived = false) AS total_items,
@@ -238,16 +244,21 @@ func (r *GroupRepository) StatsGroup(ctx context.Context, GID uuid.UUID) (GroupS
 				FROM items
 					WHERE group_items = ?
 					AND items.archived = false
-					AND (items.lifetime_warranty = true OR items.warranty_expires > date())
+					AND (items.lifetime_warranty = true OR items.warranty_expires > CURRENT_DATE)
 				) AS total_with_warranty
-`
+	`, GID, GID, GID, GID, GID, GID)
 	var stats GroupStatistics
-	row := r.db.Sql().QueryRowContext(ctx, q, GID, GID, GID, GID, GID, GID)
+	query, params, err := r.db.ToSql(q)
+	if err != nil {
+		return GroupStatistics{}, err
+	}
+
+	row := r.db.Sql().QueryRowContext(ctx, query, params...)
 
 	var maybeTotalItemPrice *float64
 	var maybeTotalWithWarranty *int
 
-	err := row.Scan(&stats.TotalUsers, &stats.TotalItems, &stats.TotalLocations, &stats.TotalLabels, &maybeTotalItemPrice, &maybeTotalWithWarranty)
+	err = row.Scan(&stats.TotalUsers, &stats.TotalItems, &stats.TotalLocations, &stats.TotalLabels, &maybeTotalItemPrice, &maybeTotalWithWarranty)
 	if err != nil {
 		return GroupStatistics{}, err
 	}

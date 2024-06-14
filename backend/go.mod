@@ -15,7 +15,9 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/schema v1.2.1
 	github.com/hay-kot/httpkit v0.0.9
+	github.com/jackc/pgx/v5 v5.6.0
 	github.com/mattn/go-sqlite3 v1.14.22
+	github.com/nullism/bqb v1.7.2
 	github.com/olahol/melody v1.1.4
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.32.0
@@ -49,6 +51,9 @@ require (
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/hcl/v2 v2.19.1 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
+	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -65,6 +70,7 @@ require (
 	golang.org/x/image v0.14.0 // indirect
 	golang.org/x/mod v0.15.0 // indirect
 	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.17.0 // indirect

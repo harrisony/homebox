@@ -2,6 +2,7 @@ package config
 
 const (
 	DriverSqlite3 = "sqlite3"
+	DriverPgx     = "pgx"
 )
 
 type Storage struct {

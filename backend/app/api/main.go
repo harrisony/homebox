@@ -3,6 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
+	"database/sql"
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
 	"fmt"
 	"net/http"
 	"os"
@@ -29,6 +32,7 @@ import (
 	"github.com/rs/zerolog/pkgerrors"
 
 	_ "github.com/hay-kot/homebox/backend/pkgs/cgofreesqlite"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var (
@@ -80,14 +84,34 @@ func run(cfg *config.Config) error {
 		log.Fatal().Err(err).Msg("failed to create data directory")
 	}
 
-	c, err := ent.Open(cfg.Storage.Driver, cfg.Storage.DatabaseURL)
-	if err != nil {
-		log.Fatal().
-			Err(err).
-			Str("driver", cfg.Storage.Driver).
-			Str("url", cfg.Storage.DatabaseURL).
-			Msg("failed opening connection to sqlite")
+	var c *ent.Client
+
+	if cfg.Storage.Driver == config.DriverSqlite3 {
+		c, err = ent.Open(cfg.Storage.Driver, cfg.Storage.DatabaseURL)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("driver", cfg.Storage.Driver).
+				Str("url", cfg.Storage.DatabaseURL).
+				Msg("failed opening connection to database")
+		}
+	} else if cfg.Storage.Driver == config.DriverPgx {
+		db, err := sql.Open(config.DriverPgx, cfg.Storage.DatabaseURL)
+
+		// TODO: Try refactor to avoid duplication
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("driver", cfg.Storage.Driver).
+				Str("url", cfg.Storage.DatabaseURL).
+				Msg("failed opening connection to database")
+		}
+
+		// Create an ent.Driver from `db`.
+		drv := entsql.OpenDB(dialect.Postgres, db)
+		c = ent.NewClient(ent.Driver(drv))
 	}
+
 	defer func(c *ent.Client) {
 		err := c.Close()
 		if err != nil {
@@ -117,7 +141,7 @@ func run(cfg *config.Config) error {
 	if err != nil {
 		log.Fatal().
 			Err(err).
-			Str("driver", "sqlite").
+			Str("driver", cfg.Storage.Driver).
 			Str("url", cfg.Storage.DatabaseURL).
 			Msg("failed creating schema resources")
 	}
