@@ -276,9 +276,9 @@ func mapItemOut(item *ent.Item) ItemOut {
 	}
 }
 
-func (e *ItemsRepository) publishMutationEvent(GID uuid.UUID) {
+func (e *ItemsRepository) publishMutationEvent(groupID uuid.UUID) {
 	if e.bus != nil {
-		e.bus.Publish(eventbus.EventItemMutation, eventbus.GroupMutationEvent{GID: GID})
+		e.bus.Publish(eventbus.EventItemMutation, eventbus.GroupMutationEvent{GID: groupID})
 	}
 }
 
@@ -304,25 +304,25 @@ func (e *ItemsRepository) GetOne(ctx context.Context, id uuid.UUID) (ItemOut, er
 	return e.getOne(ctx, item.ID(id))
 }
 
-func (e *ItemsRepository) CheckRef(ctx context.Context, GID uuid.UUID, ref string) (bool, error) {
-	q := e.db.Item.Query().Where(item.HasGroupWith(group.ID(GID)))
+func (e *ItemsRepository) CheckRef(ctx context.Context, groupID uuid.UUID, ref string) (bool, error) {
+	q := e.db.Item.Query().Where(item.HasGroupWith(group.ID(groupID)))
 	return q.Where(item.ImportRef(ref)).Exist(ctx)
 }
 
-func (e *ItemsRepository) GetByRef(ctx context.Context, GID uuid.UUID, ref string) (ItemOut, error) {
-	return e.getOne(ctx, item.ImportRef(ref), item.HasGroupWith(group.ID(GID)))
+func (e *ItemsRepository) GetByRef(ctx context.Context, groupID uuid.UUID, ref string) (ItemOut, error) {
+	return e.getOne(ctx, item.ImportRef(ref), item.HasGroupWith(group.ID(groupID)))
 }
 
 // GetOneByGroup returns a single item by ID. If the item does not exist, an error is returned.
 // GetOneByGroup ensures that the item belongs to a specific group.
-func (e *ItemsRepository) GetOneByGroup(ctx context.Context, gid, id uuid.UUID) (ItemOut, error) {
-	return e.getOne(ctx, item.ID(id), item.HasGroupWith(group.ID(gid)))
+func (e *ItemsRepository) GetOneByGroup(ctx context.Context, groupID, id uuid.UUID) (ItemOut, error) {
+	return e.getOne(ctx, item.ID(id), item.HasGroupWith(group.ID(groupID)))
 }
 
 // QueryByGroup returns a list of items that belong to a specific group based on the provided query.
-func (e *ItemsRepository) QueryByGroup(ctx context.Context, gid uuid.UUID, q ItemQuery) (PaginationResult[ItemSummary], error) {
+func (e *ItemsRepository) QueryByGroup(ctx context.Context, groupID uuid.UUID, q ItemQuery) (PaginationResult[ItemSummary], error) {
 	qb := e.db.Item.Query().Where(
-		item.HasGroupWith(group.ID(gid)),
+		item.HasGroupWith(group.ID(groupID)),
 	)
 
 	if q.IncludeArchived {
@@ -448,9 +448,9 @@ func (e *ItemsRepository) QueryByGroup(ctx context.Context, gid uuid.UUID, q Ite
 }
 
 // QueryByAssetID returns items by asset ID. If the item does not exist, an error is returned.
-func (e *ItemsRepository) QueryByAssetID(ctx context.Context, gid uuid.UUID, assetID AssetID, page int, pageSize int) (PaginationResult[ItemSummary], error) {
+func (e *ItemsRepository) QueryByAssetID(ctx context.Context, groupID uuid.UUID, assetID AssetID, page int, pageSize int) (PaginationResult[ItemSummary], error) {
 	qb := e.db.Item.Query().Where(
-		item.HasGroupWith(group.ID(gid)),
+		item.HasGroupWith(group.ID(groupID)),
 		item.AssetID(int(assetID)),
 	)
 
@@ -481,18 +481,18 @@ func (e *ItemsRepository) QueryByAssetID(ctx context.Context, gid uuid.UUID, ass
 }
 
 // GetAll returns all the items in the database with the Labels and Locations eager loaded.
-func (e *ItemsRepository) GetAll(ctx context.Context, gid uuid.UUID) ([]ItemOut, error) {
+func (e *ItemsRepository) GetAll(ctx context.Context, groupID uuid.UUID) ([]ItemOut, error) {
 	return mapItemsOutErr(e.db.Item.Query().
-		Where(item.HasGroupWith(group.ID(gid))).
+		Where(item.HasGroupWith(group.ID(groupID))).
 		WithLabel().
 		WithLocation().
 		WithFields().
 		All(ctx))
 }
 
-func (e *ItemsRepository) GetAllZeroAssetID(ctx context.Context, GID uuid.UUID) ([]ItemSummary, error) {
+func (e *ItemsRepository) GetAllZeroAssetID(ctx context.Context, groupID uuid.UUID) ([]ItemSummary, error) {
 	q := e.db.Item.Query().Where(
-		item.HasGroupWith(group.ID(GID)),
+		item.HasGroupWith(group.ID(groupID)),
 		item.AssetID(0),
 	).Order(
 		ent.Asc(item.FieldCreatedAt),
@@ -501,9 +501,9 @@ func (e *ItemsRepository) GetAllZeroAssetID(ctx context.Context, GID uuid.UUID) 
 	return mapItemsSummaryErr(q.All(ctx))
 }
 
-func (e *ItemsRepository) GetHighestAssetID(ctx context.Context, GID uuid.UUID) (AssetID, error) {
+func (e *ItemsRepository) GetHighestAssetID(ctx context.Context, groupID uuid.UUID) (AssetID, error) {
 	q := e.db.Item.Query().Where(
-		item.HasGroupWith(group.ID(GID)),
+		item.HasGroupWith(group.ID(groupID)),
 	).Order(
 		ent.Desc(item.FieldAssetID),
 	).Limit(1)
@@ -519,22 +519,22 @@ func (e *ItemsRepository) GetHighestAssetID(ctx context.Context, GID uuid.UUID) 
 	return AssetID(result.AssetID), nil
 }
 
-func (e *ItemsRepository) SetAssetID(ctx context.Context, GID uuid.UUID, ID uuid.UUID, assetID AssetID) error {
+func (e *ItemsRepository) SetAssetID(ctx context.Context, groupID uuid.UUID, id uuid.UUID, assetID AssetID) error {
 	q := e.db.Item.Update().Where(
-		item.HasGroupWith(group.ID(GID)),
-		item.ID(ID),
+		item.HasGroupWith(group.ID(groupID)),
+		item.ID(id),
 	)
 
 	_, err := q.SetAssetID(int(assetID)).Save(ctx)
 	return err
 }
 
-func (e *ItemsRepository) Create(ctx context.Context, gid uuid.UUID, data ItemCreate) (ItemOut, error) {
+func (e *ItemsRepository) Create(ctx context.Context, groupID uuid.UUID, data ItemCreate) (ItemOut, error) {
 	q := e.db.Item.Create().
 		SetImportRef(data.ImportRef).
 		SetName(data.Name).
 		SetDescription(data.Description).
-		SetGroupID(gid).
+		SetGroupID(groupID).
 		SetLocationID(data.LocationID).
 		SetAssetID(int(data.AssetID))
 
@@ -547,7 +547,7 @@ func (e *ItemsRepository) Create(ctx context.Context, gid uuid.UUID, data ItemCr
 		return ItemOut{}, err
 	}
 
-	e.publishMutationEvent(gid)
+	e.publishMutationEvent(groupID)
 	return e.GetOne(ctx, result.ID)
 }
 
@@ -561,23 +561,23 @@ func (e *ItemsRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (e *ItemsRepository) DeleteByGroup(ctx context.Context, gid, id uuid.UUID) error {
+func (e *ItemsRepository) DeleteByGroup(ctx context.Context, groupID, id uuid.UUID) error {
 	_, err := e.db.Item.
 		Delete().
 		Where(
 			item.ID(id),
-			item.HasGroupWith(group.ID(gid)),
+			item.HasGroupWith(group.ID(groupID)),
 		).Exec(ctx)
 	if err != nil {
 		return err
 	}
 
-	e.publishMutationEvent(gid)
+	e.publishMutationEvent(groupID)
 	return err
 }
 
-func (e *ItemsRepository) UpdateByGroup(ctx context.Context, GID uuid.UUID, data ItemUpdate) (ItemOut, error) {
-	q := e.db.Item.Update().Where(item.ID(data.ID), item.HasGroupWith(group.ID(GID))).
+func (e *ItemsRepository) UpdateByGroup(ctx context.Context, groupID uuid.UUID, data ItemUpdate) (ItemOut, error) {
+	q := e.db.Item.Update().Where(item.ID(data.ID), item.HasGroupWith(group.ID(groupID))).
 		SetName(data.Name).
 		SetDescription(data.Description).
 		SetLocationID(data.LocationID).
@@ -665,7 +665,7 @@ func (e *ItemsRepository) UpdateByGroup(ctx context.Context, GID uuid.UUID, data
 			SetTextValue(f.TextValue).
 			SetNumberValue(f.NumberValue).
 			SetBooleanValue(f.BooleanValue)
-			// SetTimeValue(f.TimeValue)
+		// SetTimeValue(f.TimeValue)
 
 		_, err = opt.Save(ctx)
 		if err != nil {
@@ -688,16 +688,16 @@ func (e *ItemsRepository) UpdateByGroup(ctx context.Context, GID uuid.UUID, data
 		}
 	}
 
-	e.publishMutationEvent(GID)
+	e.publishMutationEvent(groupID)
 	return e.GetOne(ctx, data.ID)
 }
 
-func (e *ItemsRepository) GetAllZeroImportRef(ctx context.Context, GID uuid.UUID) ([]uuid.UUID, error) {
+func (e *ItemsRepository) GetAllZeroImportRef(ctx context.Context, groupID uuid.UUID) ([]uuid.UUID, error) {
 	var ids []uuid.UUID
 
 	err := e.db.Item.Query().
 		Where(
-			item.HasGroupWith(group.ID(GID)),
+			item.HasGroupWith(group.ID(groupID)),
 			item.Or(
 				item.ImportRefEQ(""),
 				item.ImportRefIsNil(),
@@ -712,11 +712,11 @@ func (e *ItemsRepository) GetAllZeroImportRef(ctx context.Context, GID uuid.UUID
 	return ids, nil
 }
 
-func (e *ItemsRepository) Patch(ctx context.Context, GID, ID uuid.UUID, data ItemPatch) error {
+func (e *ItemsRepository) Patch(ctx context.Context, groupID, id uuid.UUID, data ItemPatch) error {
 	q := e.db.Item.Update().
 		Where(
-			item.ID(ID),
-			item.HasGroupWith(group.ID(GID)),
+			item.ID(id),
+			item.HasGroupWith(group.ID(groupID)),
 		)
 
 	if data.ImportRef != nil {
@@ -727,11 +727,11 @@ func (e *ItemsRepository) Patch(ctx context.Context, GID, ID uuid.UUID, data Ite
 		q.SetQuantity(*data.Quantity)
 	}
 
-	e.publishMutationEvent(GID)
+	e.publishMutationEvent(groupID)
 	return q.Exec(ctx)
 }
 
-func (e *ItemsRepository) GetAllCustomFieldValues(ctx context.Context, GID uuid.UUID, name string) ([]string, error) {
+func (e *ItemsRepository) GetAllCustomFieldValues(ctx context.Context, groupID uuid.UUID, name string) ([]string, error) {
 	type st struct {
 		Value string `json:"text_value"`
 	}
@@ -740,7 +740,7 @@ func (e *ItemsRepository) GetAllCustomFieldValues(ctx context.Context, GID uuid.
 
 	err := e.db.Item.Query().
 		Where(
-			item.HasGroupWith(group.ID(GID)),
+			item.HasGroupWith(group.ID(groupID)),
 		).
 		QueryFields().
 		Where(
@@ -761,7 +761,7 @@ func (e *ItemsRepository) GetAllCustomFieldValues(ctx context.Context, GID uuid.
 	return valueStrings, nil
 }
 
-func (e *ItemsRepository) GetAllCustomFieldNames(ctx context.Context, GID uuid.UUID) ([]string, error) {
+func (e *ItemsRepository) GetAllCustomFieldNames(ctx context.Context, groupID uuid.UUID) ([]string, error) {
 	type st struct {
 		Name string `json:"name"`
 	}
@@ -770,7 +770,7 @@ func (e *ItemsRepository) GetAllCustomFieldNames(ctx context.Context, GID uuid.U
 
 	err := e.db.Item.Query().
 		Where(
-			item.HasGroupWith(group.ID(GID)),
+			item.HasGroupWith(group.ID(groupID)),
 		).
 		QueryFields().
 		Unique(true).
@@ -794,9 +794,9 @@ func (e *ItemsRepository) GetAllCustomFieldNames(ctx context.Context, GID uuid.U
 // This is designed to resolve a long-time bug that has since been fixed with the time selector on the
 // frontend. This function is intended to be used as a one-time fix for existing databases and may be
 // removed in the future.
-func (e *ItemsRepository) ZeroOutTimeFields(ctx context.Context, GID uuid.UUID) (int, error) {
+func (e *ItemsRepository) ZeroOutTimeFields(ctx context.Context, groupID uuid.UUID) (int, error) {
 	q := e.db.Item.Query().Where(
-		item.HasGroupWith(group.ID(GID)),
+		item.HasGroupWith(group.ID(groupID)),
 		item.Or(
 			item.PurchaseTimeNotNil(),
 			item.PurchaseFromLT("0002-01-01"),
@@ -865,11 +865,11 @@ func (e *ItemsRepository) ZeroOutTimeFields(ctx context.Context, GID uuid.UUID) 
 	return updated, nil
 }
 
-func (e *ItemsRepository) SetPrimaryPhotos(ctx context.Context, GID uuid.UUID) (int, error) {
+func (e *ItemsRepository) SetPrimaryPhotos(ctx context.Context, groupID uuid.UUID) (int, error) {
 	// All items where there is no primary photo
 	itemIDs, err := e.db.Item.Query().
 		Where(
-			item.HasGroupWith(group.ID(GID)),
+			item.HasGroupWith(group.ID(groupID)),
 			item.HasAttachmentsWith(
 				attachment.TypeEQ(attachment.TypePhoto),
 				attachment.Not(

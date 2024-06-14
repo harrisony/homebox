@@ -65,9 +65,9 @@ func mapLabelOut(label *ent.Label) LabelOut {
 	}
 }
 
-func (r *LabelRepository) publishMutationEvent(GID uuid.UUID) {
+func (r *LabelRepository) publishMutationEvent(groupID uuid.UUID) {
 	if r.bus != nil {
-		r.bus.Publish(eventbus.EventLabelMutation, eventbus.GroupMutationEvent{GID: GID})
+		r.bus.Publish(eventbus.EventLabelMutation, eventbus.GroupMutationEvent{GID: groupID})
 	}
 }
 
@@ -79,8 +79,8 @@ func (r *LabelRepository) getOne(ctx context.Context, where ...predicate.Label) 
 	)
 }
 
-func (r *LabelRepository) GetOne(ctx context.Context, ID uuid.UUID) (LabelOut, error) {
-	return r.getOne(ctx, label.ID(ID))
+func (r *LabelRepository) GetOne(ctx context.Context, id uuid.UUID) (LabelOut, error) {
+	return r.getOne(ctx, label.ID(id))
 }
 
 func (r *LabelRepository) GetOneByGroup(ctx context.Context, gid, ld uuid.UUID) (LabelOut, error) {
@@ -125,13 +125,13 @@ func (r *LabelRepository) update(ctx context.Context, data LabelUpdate, where ..
 		Save(ctx)
 }
 
-func (r *LabelRepository) UpdateByGroup(ctx context.Context, GID uuid.UUID, data LabelUpdate) (LabelOut, error) {
-	_, err := r.update(ctx, data, label.ID(data.ID), label.HasGroupWith(group.ID(GID)))
+func (r *LabelRepository) UpdateByGroup(ctx context.Context, groupID uuid.UUID, data LabelUpdate) (LabelOut, error) {
+	_, err := r.update(ctx, data, label.ID(data.ID), label.HasGroupWith(group.ID(groupID)))
 	if err != nil {
 		return LabelOut{}, err
 	}
 
-	r.publishMutationEvent(GID)
+	r.publishMutationEvent(groupID)
 	return r.GetOne(ctx, data.ID)
 }
 
@@ -141,17 +141,17 @@ func (r *LabelRepository) delete(ctx context.Context, id uuid.UUID) error {
 	return r.db.Label.DeleteOneID(id).Exec(ctx)
 }
 
-func (r *LabelRepository) DeleteByGroup(ctx context.Context, gid, id uuid.UUID) error {
+func (r *LabelRepository) DeleteByGroup(ctx context.Context, groupID, id uuid.UUID) error {
 	_, err := r.db.Label.Delete().
 		Where(
 			label.ID(id),
-			label.HasGroupWith(group.ID(gid)),
+			label.HasGroupWith(group.ID(groupID)),
 		).Exec(ctx)
 	if err != nil {
 		return err
 	}
 
-	r.publishMutationEvent(gid)
+	r.publishMutationEvent(groupID)
 
 	return nil
 }
