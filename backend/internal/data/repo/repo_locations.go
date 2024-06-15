@@ -2,8 +2,9 @@ package repo
 
 import (
 	"context"
-	"strings"
 	"time"
+
+	"github.com/nullism/bqb"
 
 	"github.com/google/uuid"
 	"github.com/hay-kot/homebox/backend/internal/core/services/reporting/eventbus"
@@ -101,7 +102,8 @@ type LocationQuery struct {
 
 // GetAll returns all locations with item count field populated
 func (r *LocationRepository) GetAll(ctx context.Context, groupID uuid.UUID, filter LocationQuery) ([]LocationOutCount, error) {
-	query := `--sql
+	where := bqb.New("WHERE locations.group_locations = ?", groupID)
+	sqlq := bqb.New(`
 		SELECT
 			id,
 			name,
@@ -117,21 +119,19 @@ func (r *LocationRepository) GetAll(ctx context.Context, groupID uuid.UUID, filt
 					items.location_items = locations.id
 					AND items.archived = false
 			) as item_count
-		FROM
-			locations
-		WHERE
-			locations.group_locations = ? {{ FILTER_CHILDREN }}
-		ORDER BY
-			locations.name ASC
-`
+		FROM locations
+		?
+		ORDER BY locations.name ASC
+	`, where)
 
 	if filter.FilterChildren {
-		query = strings.Replace(query, "{{ FILTER_CHILDREN }}", "AND locations.location_children IS NULL", 1)
-	} else {
-		query = strings.Replace(query, "{{ FILTER_CHILDREN }}", "", 1)
+		where.And("locations.location_children IS NULL")
 	}
-
-	rows, err := r.db.Sql().QueryContext(ctx, query, groupID)
+	query, params, err := r.db.ToSql(sqlq)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := r.db.Sql().QueryContext(ctx, query, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -274,23 +274,28 @@ type ItemPath struct {
 }
 
 func (r *LocationRepository) PathForLoc(ctx context.Context, groupID, locID uuid.UUID) ([]ItemPath, error) {
-	query := `WITH RECURSIVE location_path AS (
-		SELECT id, name, location_children
-		FROM locations
-		WHERE id = ? -- Replace ? with the ID of the item's location
-		AND group_locations = ? -- Replace ? with the ID of the group
-
-		UNION ALL
-
-		SELECT loc.id, loc.name, loc.location_children
-		FROM locations loc
-		JOIN location_path lp ON loc.id = lp.location_children
-	  )
-
-	  SELECT id, name
-	  FROM location_path`
-
-	rows, err := r.db.Sql().QueryContext(ctx, query, locID, groupID)
+	q := bqb.New(`
+		WITH RECURSIVE location_path AS (
+			SELECT id, name, location_children
+			FROM locations
+			WHERE id = ?
+			AND group_locations = ?
+			
+			UNION ALL
+			
+			SELECT loc.id, loc.name, loc.location_children
+			FROM locations loc
+			JOIN location_path lp ON loc.id = lp.location_children
+		)
+		
+		SELECT id, name
+		FROM location_path`,
+		locID, groupID)
+	query, params, err := r.db.ToSql(q)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := r.db.Sql().QueryContext(ctx, query, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -321,9 +326,9 @@ func (r *LocationRepository) PathForLoc(ctx context.Context, groupID, locID uuid
 }
 
 func (r *LocationRepository) Tree(ctx context.Context, groupID uuid.UUID, tq TreeQuery) ([]TreeItem, error) {
-	query := `
-		WITH recursive location_tree(id, NAME, parent_id, level, node_type) AS
-		(
+	tree := bqb.New(`SELECT * FROM location_tree`)
+	cte := bqb.New(`
+		WITH recursive location_tree(id, NAME, parent_id, level, node_type) AS (
 			SELECT  id,
 					NAME,
 					location_children AS parent_id,
@@ -332,7 +337,7 @@ func (r *LocationRepository) Tree(ctx context.Context, groupID uuid.UUID, tq Tre
 			FROM    locations
 			WHERE   location_children IS NULL
 			AND     group_locations = ?
-
+		
 			UNION ALL
 			SELECT  c.id,
 					c.NAME,
@@ -343,66 +348,58 @@ func (r *LocationRepository) Tree(ctx context.Context, groupID uuid.UUID, tq Tre
 			JOIN   location_tree p
 			ON     c.location_children = p.id
 			WHERE  level < 10 -- prevent infinite loop & excessive recursion
-		){{ WITH_ITEMS }}
+		)`,
+		groupID)
+	if tq.WithItems {
+		cte.Comma(`
+			item_tree(id, NAME, parent_id, level, node_type) AS
+			(
+				SELECT  id,
+						NAME,
+						location_items as parent_id,
+						0 AS level,
+						'item' AS node_type
+				FROM    items
+				WHERE   item_children IS NULL
+				AND     location_items IN (SELECT id FROM location_tree)
+	
+				UNION ALL
+	
+				SELECT  c.id,
+						c.NAME,
+						c.item_children AS parent_id,
+						level + 1,
+						'item' AS node_type
+				FROM    items c
+				JOIN    item_tree p
+				ON      c.item_children = p.id
+				WHERE   c.item_children IS NOT NULL
+				AND     level < 10 -- prevent infinite loop & excessive recursion
+		)`)
 
+		// Conditional table joined to main query
+		tree.Space(`
+			UNION ALL
+			SELECT  *
+			FROM item_tree`)
+	}
+	finalquery := bqb.New(
+		`? -- CTE
 		SELECT   id,
 				 NAME,
 				 level,
 				 parent_id,
 				 node_type
-		FROM    (
-					SELECT  *
-					FROM    location_tree
-
-
-					{{ WITH_ITEMS_FROM }}
-
-
-				) tree
+		FROM    (?) tree
 		ORDER BY node_type DESC, -- sort locations before items
-				 level,
-				 lower(NAME)`
+			 level,
+			 lower(NAME)`, cte, tree)
 
-	if tq.WithItems {
-		itemQuery := `, item_tree(id, NAME, parent_id, level, node_type) AS
-		(
-			SELECT  id,
-					NAME,
-					location_items as parent_id,
-					0 AS level,
-					'item' AS node_type
-			FROM    items
-			WHERE   item_children IS NULL
-			AND     location_items IN (SELECT id FROM location_tree)
-
-			UNION ALL
-
-			SELECT  c.id,
-					c.NAME,
-					c.item_children AS parent_id,
-					level + 1,
-					'item' AS node_type
-			FROM    items c
-			JOIN    item_tree p
-			ON      c.item_children = p.id
-			WHERE   c.item_children IS NOT NULL
-			AND     level < 10 -- prevent infinite loop & excessive recursion
-		)`
-
-		// Conditional table joined to main query
-		itemsFrom := `
-		UNION ALL
-		SELECT  *
-		FROM    item_tree`
-
-		query = strings.ReplaceAll(query, "{{ WITH_ITEMS }}", itemQuery)
-		query = strings.ReplaceAll(query, "{{ WITH_ITEMS_FROM }}", itemsFrom)
-	} else {
-		query = strings.ReplaceAll(query, "{{ WITH_ITEMS }}", "")
-		query = strings.ReplaceAll(query, "{{ WITH_ITEMS_FROM }}", "")
+	query, params, err := r.db.ToSql(finalquery)
+	if err != nil {
+		return nil, err
 	}
-
-	rows, err := r.db.Sql().QueryContext(ctx, query, groupID)
+	rows, err := r.db.Sql().QueryContext(ctx, query, params...)
 	if err != nil {
 		return nil, err
 	}

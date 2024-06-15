@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"errors"
+	"github.com/nullism/bqb"
 	"time"
 
 	"github.com/google/uuid"
@@ -174,24 +175,36 @@ func (r *MaintenanceEntryRepository) GetLog(ctx context.Context, groupID, itemID
 	var maybeTotal *float64
 	var maybeAverage *float64
 
-	statement := `
-SELECT
-  SUM(cost_total) AS total_of_totals,
-  AVG(cost_total) AS avg_of_averages
-FROM
-  (
-    SELECT
-      strftime('%m-%Y', date) AS my,
-      SUM(cost) AS cost_total
-    FROM
-      maintenance_entries
-    WHERE
-      item_id = ?
-    GROUP BY
-      my
-  )`
+	sqlMonth := bqb.New("")
 
-	row := r.db.Sql().QueryRowContext(ctx, statement, itemID)
+	if r.db.Dialect() == "postgres" {
+		sqlMonth.Concat("TO_CHAR(date, 'MM-YYYY')")
+	} else {
+		sqlMonth.Concat("strftime('%m-%Y', date)")
+	}
+	sqllq := bqb.New(`
+		SELECT
+		  SUM(cost_total) AS total_of_totals,
+		  AVG(cost_total) AS avg_of_averages
+		FROM
+		  (
+			SELECT
+			  ? AS my, -- strftime('%m-%Y', date) AS my,
+			  SUM(cost) AS cost_total
+			FROM
+			  maintenance_entries
+			WHERE
+			  item_id = ?
+			GROUP BY
+			  my)
+	  	`, sqlMonth, itemID)
+
+	statement, params, err := r.db.ToSql(sqllq)
+	if err != nil {
+		return MaintenanceLog{}, err
+	}
+
+	row := r.db.Sql().QueryRowContext(ctx, statement, params...)
 	err = row.Scan(&maybeTotal, &maybeAverage)
 	if err != nil {
 		return MaintenanceLog{}, err
