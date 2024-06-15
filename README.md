@@ -1,3 +1,9 @@
+You probably don't want to use this, unless you're me.
+
+Big thanks to the original author @hay-kot.
+
+---
+
 <div align="center">
   <img src="/docs/docs/assets/img/lilbox.svg" height="200"/>
 </div>
