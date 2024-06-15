@@ -25,5 +25,3 @@ jobs:
       tag: nightly
     secrets:
       GH_TOKEN: ${{ secrets.CR_PAT }}
-
-

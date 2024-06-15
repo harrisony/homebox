@@ -280,14 +280,14 @@ func (r *LocationRepository) PathForLoc(ctx context.Context, groupID, locID uuid
 			FROM locations
 			WHERE id = ?
 			AND group_locations = ?
-			
+
 			UNION ALL
-			
+
 			SELECT loc.id, loc.name, loc.location_children
 			FROM locations loc
 			JOIN location_path lp ON loc.id = lp.location_children
 		)
-		
+
 		SELECT id, name
 		FROM location_path`,
 		locID, groupID)
@@ -337,7 +337,7 @@ func (r *LocationRepository) Tree(ctx context.Context, groupID uuid.UUID, tq Tre
 			FROM    locations
 			WHERE   location_children IS NULL
 			AND     group_locations = ?
-		
+
 			UNION ALL
 			SELECT  c.id,
 					c.NAME,
@@ -362,9 +362,9 @@ func (r *LocationRepository) Tree(ctx context.Context, groupID uuid.UUID, tq Tre
 				FROM    items
 				WHERE   item_children IS NULL
 				AND     location_items IN (SELECT id FROM location_tree)
-	
+
 				UNION ALL
-	
+
 				SELECT  c.id,
 						c.NAME,
 						c.item_children AS parent_id,

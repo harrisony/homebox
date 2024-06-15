@@ -1,3 +1,9 @@
+You probably don't want to use this, unless you're me.
+
+Big thanks to the original author @hay-kot.
+
+---
+
 <div align="center">
   <img src="/docs/docs/assets/img/lilbox.svg" height="200"/>
 </div>
@@ -16,7 +22,7 @@
 [Configuration & Docker Compose](https://hay-kot.github.io/homebox/quick-start)
 
 ```bash
-# If using the rootless image, ensure data 
+# If using the rootless image, ensure data
 # folder has correct permissions
 mkdir -p /path/to/data/folder
 chown 65532:65532 -R /path/to/data/folder
