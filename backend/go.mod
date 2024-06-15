@@ -6,7 +6,7 @@ toolchain go1.22.4
 
 require (
 	ariga.io/atlas v0.19.1
-	entgo.io/ent v0.12.5
+	entgo.io/ent v0.13.1
 	github.com/ardanlabs/conf/v3 v3.1.7
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/go-chi/chi/v5 v5.0.12
