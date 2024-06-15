@@ -110,7 +110,7 @@
         <header class="mb-2">
           <div class="flex flex-wrap items-end gap-2">
             <div class="avatar placeholder mb-auto">
-              <div class="bg-neutral-focus text-neutral-content rounded-full w-12">
+              <div class="bg-[color-mix(in_oklab,oklch(var(--n)),black_7%)] text-neutral-content rounded-full w-12">
                 <MdiPackageVariant class="h-7 w-7" />
               </div>
             </div>
