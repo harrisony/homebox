@@ -10,7 +10,7 @@
     <LabelCreateModal v-model="modals.label" />
     <LocationCreateModal v-model="modals.location" />
     <AppToast />
-    <div class="drawer drawer-mobile">
+    <div class="drawer lg:drawer-open">
       <input id="my-drawer-2" v-model="drawerToggle" type="checkbox" class="drawer-toggle" />
       <div class="drawer-content justify-center bg-base-300 pt-20 lg:pt-0">
         <AppHeaderDecor class="-mt-10 hidden lg:block" />

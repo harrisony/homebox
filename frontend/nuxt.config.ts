@@ -33,6 +33,12 @@ export default defineNuxtConfig({
       // Enable to troubleshoot during development
       enabled: false,
     },
+    postcss: {
+      plugins: {
+        tailwindcss: {},
+        autoprefixer: {},
+      },
+    },
     manifest: {
       name: "Homebox",
       short_name: "Homebox",
