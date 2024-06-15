@@ -61,7 +61,7 @@ importers:
         version: 2.3.9
       markdown-it:
         specifier: ^14.0.0
-        version: 14.0.0
+        version: 14.1.0
       pinia:
         specifier: ^2.0.21
         version: 2.1.7(typescript@5.3.3)(vue@3.4.8(typescript@5.3.3))
@@ -3970,8 +3970,8 @@ packages:
     resolution: {integrity: sha512-g3FeP20LNwhALb/6Cz6Dd4F2ngze0jz7tbzrD2wAV+o9FeNHe4rL+yK2md0J/fiSf1sa1ADhXqi5+oVwOM/eGw==}
     engines: {node: '>=8'}
 
-  markdown-it@14.0.0:
-    resolution: {integrity: sha512-seFjF0FIcPt4P9U39Bq1JYblX0KZCjDLFFQPHpL5AzHpqPEKtosxmdq/LTVZnjfH7tjt9BxStm+wXcDBNuYmzw==}
+  markdown-it@14.1.0:
+    resolution: {integrity: sha512-a54IwgWPaeBCAAsv13YgmALOF1elABB08FxO9i+r4VFk5Vl4pKokRPeX8u5TCgSsPi6ec1otfLjdOpVcgbpshg==}
     hasBin: true
 
   mdn-data@2.0.28:
@@ -5411,8 +5411,8 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  uc.micro@2.0.0:
-    resolution: {integrity: sha512-DffL94LsNOccVn4hyfRe5rdKa273swqeA5DJpMOeFmEn1wCDc7nAbbB0gXlgBCL7TNzeTv6G7XVWzan7iJtfig==}
+  uc.micro@2.1.0:
+    resolution: {integrity: sha512-ARDJmphmdvUk6Glw7y9DQ2bFkKBHwQHLi2lsaH6PPmz/Ka9sFOBsBluozhDltWmnv9u/cF6Rt87znRTPV+yp/A==}
 
   ufo@1.1.2:
     resolution: {integrity: sha512-TrY6DsjTQQgyS3E3dBaOXf0TpPD8u9FVrVYmKVegJuFw51n/YB9XPt+U6ydzFG5ZIN7+DIjPbNmXoBj9esYhgQ==}
@@ -10408,7 +10408,7 @@ snapshots:
 
   linkify-it@5.0.0:
     dependencies:
-      uc.micro: 2.0.0
+      uc.micro: 2.1.0
 
   listhen@1.0.4:
     dependencies:
@@ -10504,14 +10504,14 @@ snapshots:
     dependencies:
       semver: 6.3.1
 
-  markdown-it@14.0.0:
+  markdown-it@14.1.0:
     dependencies:
       argparse: 2.0.1
       entities: 4.5.0
       linkify-it: 5.0.0
       mdurl: 2.0.0
       punycode.js: 2.3.1
-      uc.micro: 2.0.0
+      uc.micro: 2.1.0
 
   mdn-data@2.0.28: {}
 
@@ -12131,7 +12131,7 @@ snapshots:
 
   typescript@5.3.3: {}
 
-  uc.micro@2.0.0: {}
+  uc.micro@2.1.0: {}
 
   ufo@1.1.2: {}
 
