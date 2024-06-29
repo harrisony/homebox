@@ -18,7 +18,7 @@
     "@iconify-json/mdi": "^1.1.66",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
     "@types/dompurify": "^3.0.5",
-    "@types/markdown-it": "^13.0.8",
+    "@types/markdown-it": "^14.0.0",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "@vite-pwa/nuxt": "^0.8.0",
