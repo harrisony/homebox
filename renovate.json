@@ -1,0 +1,10 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "configMigration": true,
+  "baseBranches": ["sam", "harrisons-crazy-hacks"],
+  "extends": [
+    "config:recommended",
+    "docker:disable",
+    ":separateMultipleMajorReleases"
+  ]
+}
