@@ -19,7 +19,7 @@ export class NotifiersAPI extends BaseAPI {
   }
 
   delete(id: string) {
-    return this.http.delete<void>({ url: route(`/notifiers/${id}`) });
+    return this.http.delete<null>({ url: route(`/notifiers/${id}`) });
   }
 
   test(url: string) {

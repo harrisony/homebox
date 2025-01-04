@@ -38,6 +38,7 @@
   // Cast the type of the item to a FlatTreeItem so we can get type "safety" in the template
   // Note that this does not actually change the type of the item, it just tells the compiler
   // that the type is FlatTreeItem. We must keep this in sync with the type of the items
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function cast(value: any): FlatTreeItem {
     return value as FlatTreeItem;
   }

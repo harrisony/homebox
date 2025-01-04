@@ -42,8 +42,10 @@
   import MdiChevronDown from "~icons/mdi/chevron-down";
   type Props = {
     label: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     options: any[];
     display?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     modelValue: any[];
     uniqueField: string;
   };

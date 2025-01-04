@@ -27,7 +27,7 @@ export class LocationsApi extends BaseAPI {
   }
 
   delete(id: string) {
-    return this.http.delete<void>({ url: route(`/locations/${id}`) });
+    return this.http.delete<null>({ url: route(`/locations/${id}`) });
   }
 
   update(id: string, body: LocationUpdate) {

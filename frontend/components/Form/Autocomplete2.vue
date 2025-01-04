@@ -74,6 +74,7 @@
   import MdiChevronDown from "~icons/mdi/chevron-down";
   import MdiCheck from "~icons/mdi/check";
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type SupportValues = string | { [key: string]: any };
 
   type ComboItem = {

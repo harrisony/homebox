@@ -73,6 +73,8 @@ export default defineNuxtConfig({
       autoprefixer: {},
     },
   },
-
+  typescript: {
+    typeCheck: true,
+  },
   compatibilityDate: "2024-11-29",
 });

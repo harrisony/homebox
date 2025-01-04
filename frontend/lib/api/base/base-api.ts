@@ -7,9 +7,11 @@ type BaseApiType = {
   createdAt: string;
   updatedAt: string;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function hasKey(obj: Record<string, any>, key: string): obj is Required<BaseApiType> {
   return key in obj ? typeof obj[key] === "string" : false;
 }
@@ -93,6 +95,7 @@ export class BaseAPI {
       // @ts-ignore - we are checking for the key above
       if (hasKey(result, key)) {
         // @ts-ignore - we are guarding against this above
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
         delete result[key];
       }
     });

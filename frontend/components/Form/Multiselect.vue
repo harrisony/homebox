@@ -56,10 +56,14 @@
       default: "",
     },
     modelValue: {
+      // TODO: confirm we want to disable this
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       type: Array as () => any[],
       default: null,
     },
     items: {
+      // TODO: confirm we want to disable this
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       type: Array as () => any[],
       required: true,
     },
