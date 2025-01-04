@@ -15,7 +15,7 @@ export function useTheme(): UseTheme {
   const setTheme = (newTheme: DaisyTheme) => {
     preferences.value.theme = newTheme;
 
-    if (htmlEl) {
+    if (htmlEl.value) {
       htmlEl.value?.setAttribute("data-theme", newTheme);
     }
 
