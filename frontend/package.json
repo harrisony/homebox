@@ -18,7 +18,7 @@
     "@eslint/js": "^9.17.0",
     "@faker-js/faker": "^8.4.1",
     "@iconify-json/mdi": "^1.2.1",
-    "@intlify/unplugin-vue-i18n": "^4.0.0",
+    "@intlify/unplugin-vue-i18n": "^5.0.0",
     "@nuxt/eslint": "^0.7.4",
     "@types/eslint-plugin-tailwindcss": "^3.17.0",
     "@types/markdown-it": "^13.0.9",
