@@ -37,7 +37,7 @@ jobs:
           cp -r ./.output/public ../backend/app/api/static/
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           workdir: "backend"
           distribution: goreleaser
