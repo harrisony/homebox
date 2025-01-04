@@ -17,7 +17,7 @@ require (
 	github.com/olahol/melody v1.2.1
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.33.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/swaggo/http-swagger/v2 v2.0.2
 	github.com/swaggo/swag v1.16.3
 	github.com/yeqown/go-qrcode/v2 v2.2.4
