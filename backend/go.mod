@@ -23,7 +23,7 @@ require (
 	github.com/yeqown/go-qrcode/v2 v2.2.4
 	github.com/yeqown/go-qrcode/writer/standard v1.2.4
 	golang.org/x/crypto v0.31.0
-	modernc.org/sqlite v1.33.1
+	modernc.org/sqlite v1.34.4
 )
 
 require (
