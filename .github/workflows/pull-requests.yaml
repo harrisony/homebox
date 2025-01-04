@@ -1,13 +1,7 @@
 name: Pull Request CI
 
-on:
-  pull_request:
-    branches:
-      - main
-
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
+on: 
+  [push, pull_request]
 
 jobs:
   backend-tests:
