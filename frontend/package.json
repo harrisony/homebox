@@ -35,7 +35,7 @@
     "isomorphic-fetch": "^3.0.0",
     "nuxt": "3.12.4",
     "prettier": "^3.4.1",
-    "typescript": "5.6.2",
+    "typescript": "5.7.2",
     "typescript-eslint": "^8.19.0",
     "unplugin-icons": "^0.18.5",
     "vite-plugin-eslint": "^1.8.1",
