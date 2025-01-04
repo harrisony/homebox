@@ -38,7 +38,7 @@
       return;
     }
 
-    if (locations && data.location?.id) {
+    if (locations.value && data.location?.id) {
       // @ts-expect-error - we know the locations is valid
       const location = locations.value.find(l => l.id === data.location.id);
       if (location) {
