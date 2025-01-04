@@ -30,8 +30,8 @@ importers:
         specifier: ^2.3.7
         version: 2.3.7
       '@vuepic/vue-datepicker':
-        specifier: ^8.8.1
-        version: 8.8.1(vue@3.4.8(typescript@5.6.2))
+        specifier: ^9.0.0
+        version: 9.0.3(vue@3.4.8(typescript@5.6.2))
       '@vueuse/nuxt':
         specifier: ^12.0.0
         version: 12.3.0(magicast@0.3.5)(nuxt@3.12.4(@parcel/watcher@2.5.0)(@types/node@22.10.1)(eslint@9.17.0(jiti@2.4.2))(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.27.4)(terser@5.36.0)(typescript@5.6.2)(vite@5.4.11(@types/node@22.10.1)(terser@5.36.0))(vue-tsc@2.1.6(typescript@5.6.2)))(rollup@4.27.4)(typescript@5.6.2)
@@ -2163,8 +2163,9 @@ packages:
   '@vue/shared@3.5.13':
     resolution: {integrity: sha512-/hnE/qP5ZoGpol0a5mDi45bOd7t3tjYJBjsgCsivow7D48cJeV5l05RD82lPqi7gRiphZM37rnhW1l6ZoCNNnQ==}
 
-  '@vuepic/vue-datepicker@8.8.1':
-    resolution: {integrity: sha512-8ehfUz1m69Vuc16Pm4ukgb3Mg1VT14x4EsG1ag4O/qbSNRWztTo+pUV4JnFt0FGLl5gGb6NXlxIvR7EjLgD7Gg==}
+  '@vuepic/vue-datepicker@9.0.3':
+    resolution: {integrity: sha512-OtCAKG+CkVBpCwnPx7/BGRF+/z+jDzNl2cMBpcr8j2NkAN+13xkUt7sctbOVKbG/jhuXtKoUSedI69e0cDXPXw==}
+    engines: {node: '>=18.12.0'}
     peerDependencies:
       vue: '>=3.2.0'
 
@@ -8508,7 +8509,7 @@ snapshots:
 
   '@vue/shared@3.5.13': {}
 
-  '@vuepic/vue-datepicker@8.8.1(vue@3.4.8(typescript@5.6.2))':
+  '@vuepic/vue-datepicker@9.0.3(vue@3.4.8(typescript@5.6.2))':
     dependencies:
       date-fns: 3.6.0
       vue: 3.4.8(typescript@5.6.2)
