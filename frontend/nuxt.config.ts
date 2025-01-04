@@ -8,7 +8,14 @@ export default defineNuxtConfig({
     transpile: ["vue-i18n"],
   },
 
-  modules: ["@nuxtjs/tailwindcss", "@pinia/nuxt", "@vueuse/nuxt", "@vite-pwa/nuxt", "unplugin-icons/nuxt"],
+  modules: [
+    "@nuxtjs/tailwindcss",
+    "@pinia/nuxt",
+    "@vueuse/nuxt",
+    "@vite-pwa/nuxt",
+    "@nuxt/eslint",
+    "unplugin-icons/nuxt",
+  ],
 
   nitro: {
     devProxy: {
