@@ -25,9 +25,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
 
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
-          version: 7.30.1
+          version: 9
 
       - name: Build Frontend and Copy to Backend
         working-directory: frontend
@@ -37,7 +37,7 @@ jobs:
           cp -r ./.output/public ../backend/app/api/static/
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           workdir: "backend"
           distribution: goreleaser
