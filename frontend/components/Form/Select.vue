@@ -24,10 +24,14 @@
       default: "",
     },
     modelValue: {
+      // TODO: confirm we want to disable this
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       type: [Object, String] as any,
       default: null,
     },
     items: {
+      // TODO: confirm we want to disable this
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       type: Array as () => any[],
       required: true,
     },
@@ -84,6 +88,7 @@
     { immediate: true }
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function compare(a: any, b: any): boolean {
     if (a === b) {
       return true;

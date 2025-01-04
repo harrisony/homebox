@@ -8,15 +8,15 @@ export class UserApi extends BaseAPI {
   }
 
   public logout() {
-    return this.http.post<object, void>({ url: route("/users/logout") });
+    return this.http.post<object, null>({ url: route("/users/logout") });
   }
 
   public delete() {
-    return this.http.delete<void>({ url: route("/users/self") });
+    return this.http.delete<null>({ url: route("/users/self") });
   }
 
   public changePassword(current: string, newPassword: string) {
-    return this.http.put<ChangePassword, void>({
+    return this.http.put<ChangePassword, null>({
       url: route("/users/self/change-password"),
       body: {
         current,

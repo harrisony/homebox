@@ -18,7 +18,7 @@ export class MaintenanceAPI extends BaseAPI {
   }
 
   delete(id: string) {
-    return this.http.delete<void>({ url: route(`/maintenance/${id}`) });
+    return this.http.delete<null>({ url: route(`/maintenance/${id}`) });
   }
 
   update(id: string, data: MaintenanceEntryUpdate) {

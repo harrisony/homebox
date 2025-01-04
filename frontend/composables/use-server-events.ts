@@ -38,7 +38,7 @@ function connect(onmessage: (m: EventMessage) => void) {
   ws.onerror = err => {
     console.error("websocket error", err);
   };
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const thorttled = new Map<ServerEvent, any>();
 
   thorttled.set(ServerEvent.LocationMutation, useThrottleFn(onmessage, 1000));

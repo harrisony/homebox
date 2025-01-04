@@ -1,8 +1,8 @@
-type DeferFunction<TArgs extends any[], TReturn> = (...args: TArgs) => TReturn;
+type DeferFunction<TArgs extends never[], TReturn> = (...args: TArgs) => TReturn;
 
 // useDefer is a function that takes a function and returns a function that
 // calls the original function and then calls the onComplete function.
-export function useDefer<TArgs extends any[], TReturn>(
+export function useDefer<TArgs extends never[], TReturn>(
   onComplete: (...args: TArgs) => void,
   func: DeferFunction<TArgs, TReturn>
 ): DeferFunction<TArgs, TReturn> {

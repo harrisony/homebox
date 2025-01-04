@@ -15,7 +15,7 @@ export class LabelsApi extends BaseAPI {
   }
 
   delete(id: string) {
-    return this.http.delete<void>({ url: route(`/labels/${id}`) });
+    return this.http.delete<null>({ url: route(`/labels/${id}`) });
   }
 
   update(id: string, body: LabelCreate) {

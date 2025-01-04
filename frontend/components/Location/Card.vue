@@ -48,9 +48,7 @@
   });
 
   const count = computed(() => {
-    if (hasCount.value) {
-      return (props.location as LocationOutCount).itemCount;
-    }
+    return hasCount.value ? (props.location as LocationOutCount).itemCount : 0;
   });
 
   const card = ref(null);

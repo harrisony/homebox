@@ -1,7 +1,7 @@
 import type { UseConfirmDialogRevealResult, UseConfirmDialogReturn } from "@vueuse/core";
 import type { Ref } from "vue";
 
-type Store = UseConfirmDialogReturn<any, boolean, boolean> & {
+type Store = UseConfirmDialogReturn<unknown, boolean, boolean> & {
   text: Ref<string>;
   setup: boolean;
   open: (text: string) => Promise<UseConfirmDialogRevealResult<boolean, boolean>>;
@@ -23,7 +23,7 @@ export function useConfirm(): Store {
   if (!store.setup) {
     store.setup = true;
 
-    const { isRevealed, reveal, confirm, cancel } = useConfirmDialog<any, boolean, boolean>();
+    const { isRevealed, reveal, confirm, cancel } = useConfirmDialog<unknown, boolean, boolean>();
     store.isRevealed = isRevealed;
     store.reveal = reveal;
     store.confirm = confirm;

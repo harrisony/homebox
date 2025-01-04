@@ -45,7 +45,7 @@ export class AttachmentsAPI extends BaseAPI {
   }
 
   delete(id: string, attachmentId: string) {
-    return this.http.delete<void>({ url: route(`/items/${id}/attachments/${attachmentId}`) });
+    return this.http.delete<null>({ url: route(`/items/${id}/attachments/${attachmentId}`) });
   }
 
   update(id: string, attachmentId: string, data: ItemAttachmentUpdate) {
@@ -118,7 +118,7 @@ export class ItemsApi extends BaseAPI {
   }
 
   delete(id: string) {
-    return this.http.delete<void>({ url: route(`/items/${id}`) });
+    return this.http.delete<null>({ url: route(`/items/${id}`) });
   }
 
   async update(id: string, item: ItemUpdate) {
@@ -152,7 +152,7 @@ export class ItemsApi extends BaseAPI {
     const formData = new FormData();
     formData.append("csv", file);
 
-    return this.http.post<FormData, void>({
+    return this.http.post<FormData, null>({
       url: route("/items/import"),
       data: formData,
     });
