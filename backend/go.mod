@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	ariga.io/atlas v0.19.1
 	entgo.io/ent v0.14.1
-	github.com/ardanlabs/conf/v3 v3.1.8
+	github.com/ardanlabs/conf/v3 v3.2.0
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-playground/validator/v10 v10.22.1
