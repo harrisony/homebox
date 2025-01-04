@@ -32,6 +32,7 @@
   import VueDatePicker from "@vuepic/vue-datepicker";
   import "@vuepic/vue-datepicker/dist/main.css";
   import * as datelib from "~/lib/datelib/datelib";
+  import { parse } from "date-fns";
   const emit = defineEmits(["update:modelValue", "update:text"]);
 
   const props = defineProps({
@@ -68,7 +69,7 @@
           return null;
         }
 
-        return datelib.parse(props.modelValue);
+        return parse(props.modelValue, "yyyy-MM-dd", new Date());
       }
 
       // Date

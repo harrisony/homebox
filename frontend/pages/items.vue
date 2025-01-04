@@ -360,7 +360,12 @@
       </div>
 
       <div class="flex w-full flex-wrap gap-2 py-2 md:flex-nowrap">
-        <SearchFilter v-model="selectedLocations" :label="$t('global.locations')" :options="locationFlatTree">
+        <SearchFilter
+          v-model="selectedLocations"
+          :label="$t('global.locations')"
+          :options="locationFlatTree"
+          unique-field="id"
+        >
           <template #display="{ item }">
             <div>
               <div class="flex w-full">
@@ -372,7 +377,7 @@
             </div>
           </template>
         </SearchFilter>
-        <SearchFilter v-model="selectedLabels" :label="$t('global.labels')" :options="labels" />
+        <SearchFilter v-model="selectedLabels" :label="$t('global.labels')" :options="labels" unique-field="id" />
         <div class="dropdown">
           <label tabindex="0" class="btn btn-xs">{{ $t("items.options") }}</label>
           <div
