@@ -99,7 +99,7 @@ jobs:
             COMMIT=${{ github.sha }}
 
       - name: Attest
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v2
         id: attest
         if: ${{ github.event_name != 'pull_request' }}
         with:
