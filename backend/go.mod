@@ -3,7 +3,7 @@ module github.com/sysadminsmedia/homebox/backend
 go 1.23.0
 
 require (
-	ariga.io/atlas v0.29.1
+	ariga.io/atlas v0.30.0
 	entgo.io/ent v0.14.1
 	github.com/ardanlabs/conf/v3 v3.2.0
 	github.com/containrrr/shoutrrr v0.8.0
