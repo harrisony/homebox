@@ -6,6 +6,7 @@ settings:
 
 overrides:
   vite-plugin-checker: 0.8.0
+  vite-plugin-checker>vue-tsc: '-'
 
 importers:
 
@@ -5360,7 +5361,7 @@ packages:
       vite: '>=2.0.0'
       vls: '*'
       vti: '*'
-      vue-tsc: ~2.1.6
+      vue-tsc: '*'
     peerDependenciesMeta:
       '@biomejs/biome':
         optional: true
