@@ -3,7 +3,7 @@ module github.com/sysadminsmedia/homebox/backend
 go 1.23.0
 
 require (
-	ariga.io/atlas v0.29.1
+	ariga.io/atlas v0.32.0
 	entgo.io/ent v0.14.1
 	github.com/ardanlabs/conf/v3 v3.2.0
 	github.com/containrrr/shoutrrr v0.8.0
@@ -60,6 +60,7 @@ require (
 	github.com/swaggo/files/v2 v2.0.2 // indirect
 	github.com/yeqown/reedsolomon v1.0.0 // indirect
 	github.com/zclconf/go-cty v1.16.0 // indirect
+	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
 	golang.org/x/exp v0.0.0-20250103183323-7d7fa50e5329 // indirect
 	golang.org/x/image v0.23.0 // indirect
 	golang.org/x/mod v0.22.0 // indirect
