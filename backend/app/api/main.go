@@ -28,7 +28,7 @@ import (
 	"github.com/sysadminsmedia/homebox/backend/internal/web/mid"
 	"go.balki.me/anyhttp"
 
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/sysadminsmedia/homebox/backend/internal/data/migrations/postgres"
 	_ "github.com/sysadminsmedia/homebox/backend/internal/data/migrations/sqlite3"
 	_ "github.com/sysadminsmedia/homebox/backend/pkgs/cgofreesqlite"
@@ -55,6 +55,18 @@ func build() string {
 	}
 
 	return fmt.Sprintf("%s, commit %s, built at %s", version, short, buildTime)
+}
+
+// openEntDriver opens an Ent client with the appropriate driver.
+// For PostgreSQL, it maps the "postgres" driver name to "pgx" for backward compatibility.
+func openEntDriver(driverName, databaseURL string, opts ...ent.Option) (*ent.Client, error) {
+	// Map "postgres" driver name to pgx stdlib driver for backward compatibility
+	actualDriver := driverName
+	if driverName == config.DriverPostgres {
+		actualDriver = "pgx"
+	}
+
+	return ent.Open(actualDriver, databaseURL, opts...)
 }
 
 func validatePostgresSSLMode(sslMode string) bool {
@@ -120,7 +132,7 @@ func run(cfg *config.Config) error {
 		return err
 	}
 
-	c, err := ent.Open(strings.ToLower(cfg.Database.Driver), databaseURL)
+	c, err := openEntDriver(strings.ToLower(cfg.Database.Driver), databaseURL)
 	if err != nil {
 		log.Error().
 			Err(err).
