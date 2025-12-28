@@ -44,8 +44,6 @@ jobs:
       matrix:
         platform:
           - linux/amd64
-          - linux/arm64
-          - linux/arm/v7
 
     steps:
       - name: Enable Debug Logs
@@ -98,8 +96,8 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,"name=${{ env.DOCKERNAMES }}",push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
-          cache-from: type=registry,ref=ghcr.io/sysadminsmedia/devcache:${{ env.PLATFORM_PAIR }}-${{ env.BRANCH }}-rootless
-          cache-to: type=registry,ref=ghcr.io/sysadminsmedia/devcache:${{ env.PLATFORM_PAIR }}-${{ env.BRANCH }}-rootless,mode=max,ignore-error=true
+          cache-from: type=registry,ref=ghcr.io/harrisony/devcache:${{ env.PLATFORM_PAIR }}-${{ env.BRANCH }}-rootless
+          cache-to: type=registry,ref=ghcr.io/harrisony/devcache:${{ env.PLATFORM_PAIR }}-${{ env.BRANCH }}-rootless,mode=max,ignore-error=true
           build-args: |
             VERSION=${{ github.ref_name }}
             COMMIT=${{ github.sha }}
