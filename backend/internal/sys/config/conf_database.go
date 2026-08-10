@@ -22,6 +22,7 @@ func (s Storage) MarshalJSON() ([]byte, error) {
 
 type Database struct {
 	Driver           string `yaml:"driver"             conf:"default:sqlite3"`
+	ConnString       string `yaml:"conn_string"        conf:"mask"`
 	Username         string `yaml:"username"`
 	Password         string `yaml:"password"`
 	Host             string `yaml:"host"`
@@ -41,6 +42,8 @@ func (d Database) MarshalJSON() ([]byte, error) {
 	if a.Password != "" {
 		a.Password = redactedValue
 	}
+
+	a.ConnString = redactURLUserinfo(a.ConnString)
 	a.PubSubConnString = redactURLUserinfo(a.PubSubConnString)
 	return json.Marshal(a)
 }

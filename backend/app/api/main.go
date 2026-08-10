@@ -123,6 +123,37 @@ func run(cfg *config.Config) error {
 				"and provide via HBOX_AUTH_API_KEY_PEPPER. Rotating it invalidates all issued API keys",
 		)
 	}
+	// ================================================================
+	// Initialize Database & Repos
+	err := setupStorageDir(cfg)
+	if err != nil {
+		return err
+	}
+
+	if strings.ToLower(cfg.Database.Driver) == config.DriverPostgres {
+		if !validatePostgresSSLMode(cfg.Database.SslMode) {
+			log.Error().Str("sslmode", cfg.Database.SslMode).Msg("invalid sslmode")
+			return fmt.Errorf("invalid sslmode: %s", cfg.Database.SslMode)
+		}
+	}
+
+	databaseURL, err := setupDatabaseURL(cfg)
+	if err != nil {
+		return err
+	}
+
+	c, err := ent.Open(strings.ToLower(cfg.Database.Driver), databaseURL)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("driver", strings.ToLower(cfg.Database.Driver)).
+			Str("database_url", databaseURL).
+			Msg("failed opening connection to {driver} database")
+		return fmt.Errorf("failed opening connection to %s database: %w",
+			strings.ToLower(cfg.Database.Driver),
+			err,
+		)
+	}
 	hasher.SetAPIKeyPepper([]byte(cfg.Auth.APIKeyPepper))
 
 	// Harden http.DefaultClient so notifier redirects are re-validated against the
