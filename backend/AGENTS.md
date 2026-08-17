@@ -100,13 +100,22 @@ those paths means nothing was checked, not that nothing was wrong.
 
 ## Formatting
 
-`mise run //backend:lint` only **checks** (`golangci-lint fmt --diff`). No mise
-task formats in place — to actually rewrite, run from `backend/`:
+`mise run //backend:fmt` rewrites in place; `//backend:lint` runs the same thing
+with `--diff` to check. Both apply gofmt, **gofumpt with `extra-rules: true`**
+(stricter than plain gofmt), goimports, and swaggo (swagger annotation comments).
 
-    mise exec -- golangci-lint fmt
+**Do not run a bare `golangci-lint fmt`.** Unlike `run`, it has no
+`--new-from-merge-base` and no `--new-from-rev`, so it reformats the whole tree —
+about 35 files of upstream code this fork has no other reason to diverge in, and
+that divergence would have to be re-applied on every upstream resync. This is the
+same hazard as `run --fix` above. `//backend:fmt` exists to supply the scope
+golangci-lint does not: it reads `new-from-merge-base` out of `.golangci.yml` and
+passes only the Go files changed since that merge base, working tree included.
 
-That applies gofmt, **gofumpt with `extra-rules: true`** (stricter than plain
-gofmt), goimports, and swaggo (swagger annotation comments).
+The consequence worth knowing: formatting is scoped per **file**, not per line
+like the linter, so the first time you touch an untouched upstream file its whole
+formatting diff lands in your commit. That is intended — divergence then tracks
+the files you actually work in.
 
 ## Schema and migrations
 

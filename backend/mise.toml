@@ -188,13 +188,17 @@ rm -rf \
   "{{config_root}}/coverage-postgres.out"
 """
 
+# Both halves are scoped to what this branch changed, but only the first gets
+# that for free: `run` reads issues.new-from-merge-base out of .golangci.yml,
+# while `fmt` has no such flag and would otherwise demand reformatting the whole
+# upstream tree. mise-tasks/fmt supplies the missing scope.
 [tasks.lint]
 alias = "go:lint"
 description = "Runs golangci-lint and formatter checks"
 depends = ["//:generate"]
 run = [
   "golangci-lint run ./...",
-  "golangci-lint fmt --diff",
+  { task = ":fmt", args = ["--diff"] },
 ]
 
 [tasks.all]

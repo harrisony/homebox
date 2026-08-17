@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+#MISE description="Rewrites the Go files this branch changed, matching the linter's merge-base scope"
+#MISE alias="go:fmt"
+set -euo pipefail
+
+# `golangci-lint run` honours issues.new-from-merge-base, so it only reports
+# findings on lines this branch changed. `golangci-lint fmt` has no equivalent —
+# no --new-from-rev, no --new-from-merge-base — so a bare run reformats the whole
+# tree. For this fork that is ~35 files of upstream code we have no other reason
+# to diverge in, and the divergence would have to be re-applied on every resync.
+#
+# `fmt` does accept explicit paths, so scoping it to the same file set the linter
+# considers is the missing half of the gate. Pass through any flags you want:
+#
+#   mise run //backend:fmt -- --diff    # check, do not rewrite (what :lint runs)
+#   mise run //backend:fmt              # rewrite in place
+
+# Derived from the script's own path rather than MISE_PROJECT_ROOT, which for a
+# task defined in a config root points at that root and not the monorepo root.
+cd "$(dirname "$0")/.."
+
+# Read the base from the linter config rather than repeating it, so the two
+# halves of the gate cannot drift apart.
+base_branch="$(sed -n 's/^[[:space:]]*new-from-merge-base:[[:space:]]*//p' .golangci.yml)"
+if [ -z "$base_branch" ]; then
+  echo "fmt: no new-from-merge-base in .golangci.yml; refusing to guess a scope" >&2
+  exit 1
+fi
+
+if ! git rev-parse --verify --quiet "$base_branch^{commit}" >/dev/null; then
+  echo "fmt: branch '$base_branch' does not exist, so the scope is undefined." >&2
+  echo "fmt: golangci-lint run has the same dependency — create it, or neither half is filtered." >&2
+  exit 1
+fi
+
+base="$(git merge-base "$base_branch" HEAD)"
+
+# `git diff <commit>` compares the WORKING TREE to that commit, so staged and
+# unstaged edits both count — which is what the pre-commit gate needs.
+# --diff-filter=d drops deletions; --relative makes the paths backend-relative.
+files="$(git diff --name-only --diff-filter=d --relative "$base" -- '*.go')"
+
+if [ -z "$files" ]; then
+  echo "fmt: no Go files changed since ${base_branch}"
+  exit 0
+fi
+
+printf '%s\n' "$files" | tr '\n' '\0' | xargs -0 golangci-lint fmt "$@"
