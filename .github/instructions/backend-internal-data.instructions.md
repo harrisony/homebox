@@ -80,7 +80,7 @@ func (Item) Indexes() []ent.Index {
 **After modifying any schema file, ALWAYS run:**
 
 ```bash
-task generate
+mise run generate
 ```
 
 This:
@@ -173,10 +173,10 @@ items, err := query.
 ### Adding a New Entity
 
 1. **Create schema:** `backend/internal/data/ent/schema/myentity.go`
-2. **Run:** `task generate` (generates Ent code)
+2. **Run:** `mise run generate` (generates Ent code)
 3. **Create repository:** `backend/internal/data/repo/repo_myentity.go`
 4. **Add to AllRepos:** Edit `repo/repos_all.go` to include new repo
-5. **Run tests:** `task go:test`
+5. **Run tests:** `mise run //backend:test`
 
 ### Adding Fields to Existing Entity
 
@@ -184,10 +184,10 @@ items, err := query.
    ```go
    field.String("new_field").Optional()
    ```
-2. **Run:** `task generate`
+2. **Run:** `mise run generate`
 3. **Update repository:** Add field to input/output types in `repo/repo_items.go`
 4. **Update mappers:** Ensure mapper functions handle new field
-5. **Run tests:** `task go:test`
+5. **Run tests:** `mise run //backend:test`
 
 ### Adding Relationships (Edges)
 
@@ -199,9 +199,9 @@ items, err := query.
    // In location.go
    edge.To("items", Item.Type)
    ```
-2. **Run:** `task generate`
+2. **Run:** `mise run generate`
 3. **Use in queries:** `.WithLocation()` to load the edge
-4. **Run tests:** `task go:test`
+4. **Run tests:** `mise run //backend:test`
 
 ## Testing
 
@@ -224,7 +224,7 @@ cd backend && go test ./internal/data/repo -v
 
 ## Critical Rules
 
-1. **ALWAYS run `task generate` after schema changes** - builds will fail otherwise
+1. **ALWAYS run `mise run generate` after schema changes** - builds will fail otherwise
 2. **NEVER edit files in `ent/` except `ent/schema/`** - they're generated
 3. **Use repositories, not raw Ent queries in services/handlers** - maintains separation
 4. **Include `group_id` in all queries** - ensures multi-tenancy
@@ -233,7 +233,7 @@ cd backend && go test ./internal/data/repo -v
 
 ## Common Errors
 
-- **"undefined: ent.ItemX"** → Run `task generate` after schema changes
+- **"undefined: ent.ItemX"** → Run `mise run generate` after schema changes
 - **Migration conflicts** → Check `migrations/` for manual migration files
 - **Foreign key violations** → Ensure edges are properly defined in both schemas
 - **Slow queries** → Add indexes in schema `Indexes()` method

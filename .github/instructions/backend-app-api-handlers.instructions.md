@@ -95,7 +95,7 @@ func (ctrl *V1Controller) HandleLabelsGetAll() errchain.HandlerFunc {
 
 **After modifying Swagger comments, ALWAYS run:**
 ```bash
-task generate  # Regenerates Swagger docs and TypeScript types
+mise run generate  # Regenerates Swagger docs and TypeScript types
 ```
 
 ## Adapter Pattern
@@ -476,21 +476,21 @@ r.Get("/my-entity/{id}", chain.ToHandlerFunc(v1Ctrl.HandleMyEntityGet(), userMW.
 ### 3. Generate Docs
 
 ```bash
-task generate  # Generates Swagger docs and TypeScript types
+mise run generate  # Generates Swagger docs and TypeScript types
 ```
 
 ### 4. Test
 
 ```bash
-task go:build  # Verify builds
-task go:test   # Run tests
+mise run //backend:build  # Verify builds
+mise run //backend:test   # Run tests
 ```
 
 ## Critical Rules
 
 1. **Use adapters pattern** - Use `adapters.Command`, `adapters.Action`, etc. instead of manual request handling
 2. **ALWAYS add Swagger comments** - Required for API docs and TypeScript type generation
-3. **Run `task generate` after handler changes** - Updates API documentation and frontend types
+3. **Run `mise run generate` after handler changes** - Updates API documentation and frontend types
 4. **Always use `services.NewContext`** - Extracts authenticated user from request context
 5. **Use `auth.GID` for multi-tenancy** - Always scope queries to the user's group
 6. **Handle errors properly** - Return errors directly (adapters handle conversion) or use `validate.NewRequestError()`
@@ -498,8 +498,8 @@ task go:test   # Run tests
 
 ## Common Issues
 
-- **"Missing Swagger docs"** → Add `@Summary`, `@Tags`, `@Router` comments, run `task generate`
-- **TypeScript types outdated** → Run `task generate` to regenerate
+- **"Missing Swagger docs"** → Add `@Summary`, `@Tags`, `@Router` comments, run `mise run generate`
+- **TypeScript types outdated** → Run `mise run generate` to regenerate
 - **Auth failures** → Ensure route has `userMW...` middleware and `@Security Bearer`
 - **Wrong adapter** → Use `Command` for no body, `Action` for body, `Query` for query params
 - **UUID not found** → Check the path parameter name matches `adapters.CommandID("id", ...)` or use `ctrl.routeUUID(r, "paramName")`

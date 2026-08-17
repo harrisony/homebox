@@ -304,8 +304,8 @@ func (ctrl *V1Controller) HandleMyEntityCreate() errchain.HandlerFunc {
 ### 4. Run Tests
 
 ```bash
-task generate    # If you modified schemas
-task go:test     # Run all tests
+mise run generate    # If you modified schemas
+mise run //backend:test     # Run all tests
 ```
 
 ## Common Service Responsibilities

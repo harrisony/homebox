@@ -50,6 +50,7 @@ node_modules
 .cache
 .output
 .env
+*.local.toml
 dist
 
 .pnpm-store
@@ -70,3 +71,26 @@ frontend/test-results/
 frontend/playwright-report/
 frontend/blob-report/
 frontend/playwright/.cache/
+frontend/coverage/
+
+# Playwright CLI local config (machine-specific browser detection)
+.playwright/
+
+# Agent skills are vendored so every clone and worktree gets them without a
+# fetch step. Everything else under .agents/ is local state.
+.agents/*
+!.agents/skills/
+
+# Subagent definitions are committed where each tool reads them. The rest of
+# .claude/ is per-machine state: symlinked skills, run locks, worktrees.
+.claude/*
+!.claude/agents/
+
+# Beads issue tracker (fork-only, upstream does not use it)
+.beads/
+.bv/
+
+# pi-coding-agent local state
+.pi/
+# br doctor per-run artifacts
+.doctor/

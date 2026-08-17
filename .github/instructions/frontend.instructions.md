@@ -145,7 +145,7 @@ export interface ItemCreate {
 
 **Regenerate after backend API changes:**
 ```bash
-task generate  # Runs in backend, updates frontend/lib/api/types/
+mise run generate  # Runs in backend, updates frontend/lib/api/types/
 ```
 
 ### Using the API Client
@@ -380,7 +380,7 @@ describe('Items API', () => {
 
 **Run tests:**
 ```bash
-task ui:watch  # Watch mode
+mise run //frontend:test:watch  # Watch mode
 cd frontend && pnpm run test:ci  # CI mode
 ```
 
@@ -406,7 +406,7 @@ test('should create new item', async ({ page }) => {
 
 **Run E2E tests:**
 ```bash
-task test:e2e  # Full E2E suite
+mise run test:e2e  # Full E2E suite
 ```
 
 ## Adding a New Feature
@@ -416,7 +416,7 @@ task test:e2e  # Full E2E suite
 Make backend changes first (schema, service, handler):
 ```bash
 # Edit backend files
-task generate  # Regenerates TypeScript types
+mise run generate  # Regenerates TypeScript types
 ```
 
 ### 2. Create Component
@@ -456,25 +456,25 @@ const { data: feature } = await api.myFeature.getOne(route.params.id)
 ### 4. Test
 
 ```bash
-task ui:check    # Type checking
-task ui:fix      # Linting
-task ui:watch    # Run tests
+mise run //frontend:typecheck    # Type checking
+mise run //frontend:lint:fix      # Linting
+mise run //frontend:test:watch    # Run tests
 ```
 
 ## Critical Rules
 
-1. **Never edit generated types** - `lib/api/types/` is auto-generated, run `task generate` after backend changes
+1. **Never edit generated types** - `lib/api/types/` is auto-generated, run `mise run generate` after backend changes
 2. **No manual imports for components/composables** - auto-imported from `components/` and `composables/`
 3. **Use TypeScript** - all `.vue` files use `<script setup lang="ts">`
 4. **Follow file-based routing** - pages in `pages/` become routes automatically
 5. **Use `useUserApi()` for API calls** - provides typed, authenticated API client
-6. **Max 1 linting warning in CI** - run `task ui:fix` before committing
+6. **Max 1 linting warning in CI** - run `mise run //frontend:lint:fix` before committing
 7. **Test with backend running** - integration tests need API server
 
 ## Common Issues
 
-- **"Type not found"** → Run `task generate` to regenerate types from backend
+- **"Type not found"** → Run `mise run generate` to regenerate types from backend
 - **Component not found** → Check naming (nested path = component name)
-- **API call fails** → Ensure backend is running (`task go:run`)
-- **Lint errors** → Run `task ui:fix` to auto-fix
-- **Type errors** → Run `task ui:check` for detailed errors
+- **API call fails** → Ensure backend is running (`mise run //backend:run`)
+- **Lint errors** → Run `mise run //frontend:lint:fix` to auto-fix
+- **Type errors** → Run `mise run //frontend:typecheck` for detailed errors
