@@ -1,0 +1,175 @@
+# Task names are bare here: the config root already namespaces them, so this file
+# defines `//frontend:dev`, not `//frontend:ui:dev`. Each task that existed under
+# the old `ui:` prefix keeps that name as an alias. Bare names are what make
+# cross-root wildcards work: `mise run '//...:test'` and `mise run '//...:lint'`
+# hit backend and frontend together.
+#
+# Most tasks here wrap a script in package.json; the install, aggregate, tool and
+# cache tasks compose commands directly. Every user-facing package script has a
+# task or alias here, while lifecycle hooks such as `postinstall` remain pnpm-owned.
+# `mise tasks --all` is the monorepo run surface.
+
+# NOT the E2E runner. That is @playwright/test, pinned in package.json and
+# installed with its browsers by :e2e:install. This is the standalone CLI that
+# the `playwright-cli` agent skill ships inside, which is why it is a mise tool
+# rather than a dependency.
+[tools]
+"npm:shadcn-vue" = "2.8.2"
+
+[env]
+_.path = ["{{config_root}}/node_modules/.bin"]
+
+[tasks.install]
+alias = "ui:install"
+description = "Install frontend dependencies with pnpm"
+run = "pnpm install"
+sources = ["package.json", "pnpm-lock.yaml", "mise.toml"]
+outputs = ["node_modules/.pnpm/lock.yaml"]
+
+[tasks.shadcn]
+description = "Run the pinned shadcn-vue CLI"
+depends = [":install"]
+run = "shadcn-vue"
+raw_args = true
+
+[tasks.dev]
+alias = "ui:dev"
+description = "Run frontend development server on :3000 (proxies /api to :7745)"
+depends = [":install"]
+run = "pnpm dev --no-fork"
+
+# There is deliberately no backgrounded variant of `dev`. Upstream had one
+# (`ui:ci`, `pnpm dev &`) for its CI; it does not work. The backgrounded process
+# outlives the task's shell, which cleans up the vite-node socket in $TMPDIR, and
+# Nuxt then kills itself with `ENOENT ... chmod '.../nuxt-vite-node-*.sock'`.
+# Run `dev` in a process you own instead.
+
+[tasks.build]
+alias = "ui:build"
+description = "Build the frontend for production (nuxt generate)"
+depends = [":install"]
+run = "pnpm build"
+
+[tasks.preview]
+description = "Serve the production build locally"
+depends = [":build"]
+run = "pnpm preview"
+
+# `node_modules` itself is deliberately left alone: reinstalling is `:install`'s
+# job, and `.cache`/`.vite` are the only parts of it that go stale.
+[tasks.clean]
+description = "Remove the Nuxt, Nitro, Vite and test output caches"
+run = """
+set -euo pipefail
+rm -rf \
+  "{{config_root}}/.nuxt" \
+  "{{config_root}}/.nitro" \
+  "{{config_root}}/.output" \
+  "{{config_root}}/dist" \
+  "{{config_root}}/coverage" \
+  "{{config_root}}/blob-report" \
+  "{{config_root}}/playwright/.cache" \
+  "{{config_root}}/node_modules/.cache" \
+  "{{config_root}}/node_modules/.vite"
+"""
+
+[tasks.typecheck]
+alias = "ui:check"
+description = "Run Nuxt preparation and vue-tsc type checking"
+depends = [":install"]
+run = "pnpm run typecheck"
+
+[tasks.lint]
+description = "Runs eslint and prettier in check-only mode"
+depends = [":install"]
+run = "pnpm run lint"
+
+[tasks."lint:fix"]
+alias = "ui:fix"
+description = "Runs prettier and eslint on the frontend"
+depends = [":install"]
+run = "pnpm run lint:fix"
+
+[tasks."lint:ci"]
+description = "Lint gate: fails above 1 warning"
+depends = [":install"]
+run = "pnpm run lint:ci"
+
+# What the pre-commit hook runs for any commit touching frontend/. Deliberately
+# ONE task rather than three lefthook jobs: each of those would be its own `mise
+# run`, and three of them racing on the same `:install` is a pnpm store conflict
+# waiting for a cold cache. Declaring :install once here serialises it.
+#
+# lint:ci, not lint:fix — a fixer rewrites the files typecheck is reading. That
+# race is why //:pr splits its frontend pass across three sequential entries.
+[tasks.gate]
+description = "The pre-commit gate for frontend changes: lint"
+depends = [":install"]
+run = [
+  { task = ":lint:ci" },
+]
+
+# The Vitest lanes below map 1:1 to the projects in test/vitest.config.ts.
+# `test` is the fast pair that needs nothing running; integration and e2e want a
+# live backend on :7745 and are kept out of it deliberately.
+[tasks.test]
+description = "Runs the fast Vitest lanes (unit + component) - no backend required"
+depends = [":install"]
+run = [
+  { task = ":test:unit" },
+  { task = ":test:component" },
+]
+
+[tasks."test:unit"]
+description = "Vitest unit lane: pure logic in lib/, composables/, stores/ (no DOM, no backend)"
+depends = [":install"]
+run = "pnpm run test:unit"
+raw_args = true
+
+[tasks."test:component"]
+description = "Vitest component lane: real Nuxt runtime in happy-dom (*.nuxt.test.ts)"
+depends = [":install"]
+run = "pnpm run test:component"
+raw_args = true
+
+# Needs a backend on :7745. Start one with `mise run //backend:run`, or use
+# `mise run test:ci` from the root, which builds and starts the server for you.
+[tasks."test:integration"]
+description = "Vitest integration lane against a live backend on :7745 (start one first)"
+depends = [":install"]
+run = "pnpm run test:integration"
+raw_args = true
+
+[tasks."test:coverage"]
+description = "Vitest unit lane with v8 coverage"
+depends = [":install"]
+run = "pnpm run test:coverage"
+
+[tasks."test:watch"]
+alias = "ui:watch"
+description = "Starts the vitest unit lane in watch mode"
+depends = [":install"]
+run = "pnpm run test:watch"
+
+[tasks."test:local"]
+description = "Runs every Vitest lane against a live backend, leaving the server up afterwards"
+depends = [":install"]
+run = "pnpm run test:local"
+raw_args = true
+
+[tasks."test:ci"]
+alias = "ui:test:ci"
+description = "Runs every Vitest lane against a live backend (CI only)"
+depends = [":install"]
+run = "pnpm run test:ci"
+
+# Split out of the root test:e2e so the browser download is a named step you can
+# run once by hand instead of an unexplained pair of lines inside another task.
+# install-deps is a no-op off Linux; the browser install is a no-op once cached.
+[tasks."e2e:install"]
+description = "Install Playwright browsers and Linux system dependencies"
+depends = [":install"]
+run = [
+  "pnpm exec playwright install-deps",
+  "pnpm exec playwright install",
+]

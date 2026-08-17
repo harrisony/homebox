@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+#MISE description="Stop the API server a lane started, identified by the PID it recorded"
+#
+# The lane that launches a server is the only thing that knows which server is
+# its own, so it records the PID and this reads it back. `pkill -x api` cannot
+# make that distinction: it matches every process called `api` on the machine,
+# so a finishing lane would kill a server belonging to a concurrent lane, a
+# dev server someone started by hand, or another worktree's run.
+#
+# Takes the pidfile as an ARGUMENT, not an environment variable. Task-level
+# `env` is documented as not reaching `depends` (and therefore `depends_post`)
+# tasks, so a pidfile passed that way would silently arrive unset and this
+# would no-op while looking like it worked.
+set -uo pipefail
+
+pidfile="${1:-}"
+if [ -z "$pidfile" ]; then
+  echo "stop-api: no pidfile argument given" >&2
+  echo "call it as depends_post = [{ task = \"stop-api\", args = [\"<pidfile>\"] }]" >&2
+  exit 2
+fi
+
+# No pidfile means the lane never got as far as launching a server. That is a
+# normal outcome when an earlier step failed, so it is not an error.
+[ -f "$pidfile" ] || exit 0
+
+pid=$(tr -dc '0-9' <"$pidfile")
+rm -f "$pidfile"
+[ -n "$pid" ] || exit 0
+
+# PIDs get recycled. Confirm the process still is the api binary before
+# signalling it, so a stale pidfile cannot make cleanup kill something
+# unrelated that happened to inherit the number.
+name=$(ps -p "$pid" -o comm= 2>/dev/null | sed 's|.*/||')
+if [ "$name" != "api" ]; then
+  exit 0
+fi
+
+kill -TERM "$pid" 2>/dev/null || exit 0
+
+# SIGTERM first so the server closes the SQLite file and its WAL cleanly.
+# Escalate only if it will not go, because a wedged process holds the port and
+# the next lane's require-port-free would refuse to start over it.
+for _ in $(seq 1 50); do
+  kill -0 "$pid" 2>/dev/null || exit 0
+  sleep 0.1
+done
+
+echo "stop-api: pid $pid ignored SIGTERM after 5s, sending SIGKILL" >&2
+kill -KILL "$pid" 2>/dev/null || true

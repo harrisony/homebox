@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#MISE description="Wait for the backend to accept requests on /api/v1/status"
+# Polls the readiness endpoint with a bounded retry; fails fast if the server
+# is broken instead of masking a crash behind a fixed sleep.
+# bounded at 30s (server should be up well within that); fails fast if broken.
+i=0
+until curl -sf "http://localhost:${HBOX_WEB_PORT:-7745}/api/v1/status" >/dev/null; do
+  i=$((i+1))
+  [ "$i" -ge 30 ] && { echo "backend not ready on :${HBOX_WEB_PORT:-7745}/api/v1/status after 30s" >&2; exit 1; }
+  sleep 1
+done

@@ -92,15 +92,6 @@ frontend/.playwright-cli/
 
 # Beads issue tracker (fork-only, upstream does not use it)
 .beads/
-# Raw agent transcripts from the frontend audit. 29MB of never-delta-compressing
-# blobs; the audit's conclusions and their provenance are tracked alongside them.
-fork/doc-quarantine/audit-2026-08-06/transcripts/
-
-# Agent session scratch. A handoff note is state for the next session, not a
-# project document: it is stale the moment its work lands, and the durable parts
-# belong in a commit message, an AGENTS.md, or an issue.
-HANDOFF.md
-
 # bv (beads viewer) local config and caches
 .bv/
 

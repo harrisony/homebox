@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+#MISE description="Fast-forward local upstream-main to upstream/main without checking it out"
+set -euo pipefail
+
+root="${MISE_PROJECT_ROOT:?MISE_PROJECT_ROOT unset - run this via mise}"
+cd "$root"
+
+if ! git show-ref --verify --quiet refs/heads/upstream-main; then
+  echo "sync-main: local upstream-main does not exist" >&2
+  exit 1
+fi
+
+git fetch upstream main
+
+local_main="$(git rev-parse refs/heads/upstream-main)"
+remote_main="$(git rev-parse refs/remotes/upstream/main)"
+
+if ! git merge-base --is-ancestor "$local_main" "$remote_main"; then
+  echo "sync-main: local upstream-main has commits not in upstream/main; refusing to overwrite it" >&2
+  echo "sync-main: local upstream-main: $local_main" >&2
+  echo "sync-main: upstream/main: $remote_main" >&2
+  exit 1
+fi
+
+if [ "$local_main" = "$remote_main" ]; then
+  echo "sync-main: upstream-main is already up to date with upstream/main"
+  exit 0
+fi
+
+git update-ref refs/heads/upstream-main "$remote_main" "$local_main"
+echo "sync-main: fast-forwarded upstream-main to ${remote_main:0:12}"

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+#MISE description="Fail if anything is already listening on the backend port"
+#
+# Runs BEFORE a lane launches its own server. wait-for-backend cannot do this job:
+# it runs after the launch, and it polls /api/v1/status, which a server someone
+# else started answers just as happily as ours.
+#
+# That is not hypothetical. A dev server on :7745 runs with HBOX_DEMO=true, which
+# 403s change-password — and lib/api/__test__/user/user.test.ts asserts a 204 from
+# it. Adopting a stale server turns that into a failure with no obvious cause,
+# which is what "the integration tests are flaky on first run" actually was.
+#
+# Playwright's webServer does the same check for the E2E lane (reuseExistingServer
+# false), so this covers the vitest lanes that mise still launches by hand.
+set -euo pipefail
+
+port="${HBOX_WEB_PORT:-7745}"
+
+# /dev/tcp rather than lsof: it is a bash builtin, so there is nothing to install
+# and nothing to be missing on a stripped-down machine.
+if ! (exec 3<>"/dev/tcp/127.0.0.1/${port}") 2>/dev/null; then
+  exit 0
+fi
+
+echo "port ${port} is already in use; refusing to start a second backend over it" >&2
+echo "the tests would silently run against whatever is already there" >&2
+
+# Best-effort diagnosis. Absent lsof, the message above still says enough to act on.
+if command -v lsof >/dev/null 2>&1; then
+  echo >&2
+  lsof -nP -iTCP:"${port}" -sTCP:LISTEN >&2 || true
+fi
+
+echo >&2
+echo "stop it with 'mise run //:dev:stop', or check what it is first if you did not start it" >&2
+exit 1

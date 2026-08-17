@@ -1,0 +1,235 @@
+# t.TempDir() roots itself at GOTMPDIR when that is set, and falls back to TMPDIR
+# otherwise. On macOS TMPDIR is a ~50 character path under /var/folders, and
+# app/api/listener_test.go binds a unix socket inside the directory it hands back;
+# the combined path overruns sun_path (104 bytes on darwin, 108 on Linux) and
+# the bind fails with EINVAL. Pointing GOTMPDIR at /tmp shortens the harness scratch
+# directory only: os.TempDir() still reports TMPDIR, so nothing the code under test
+# does is perturbed. On Linux TMPDIR is already /tmp, making this a no-op there.
+[env]
+GOTMPDIR = "/tmp"
+
+# Task names are bare here: the config root already namespaces them, so this file
+# defines `//backend:test`, not `//backend:go:test`. Each task keeps its old
+# `go:`-prefixed name as an alias. Bare names are what make cross-root wildcards
+# work: `mise run '//...:test'` and `mise run '//...:lint'` hit backend and
+# frontend together.
+
+# Go toolchain lives with the Go code. `go` itself is declared at the monorepo
+# root because the root tasks (typegen, swag) shell out to it; config roots
+# inherit their parents' tools, so it does not need repeating here.
+[tools]
+"aqua:golangci/golangci-lint" = "2.12.2"
+"go:github.com/go-gremlins/gremlins/cmd/gremlins" = "0.6.0"
+"go:golang.org/x/tools/gopls" = "latest"
+"go:golang.org/x/tools/cmd/goimports" = "latest"
+# Authoring migrations only; the server applies them through the embedded goose
+# library. Kept in step with go.mod.
+"go:github.com/pressly/goose/v3/cmd/goose" = "3.27.1"
+
+[tasks.run]
+alias = "go:run"
+description = "Start the demo-mode backend API on :7745"
+# Demo mode seeds demo data and 403s change-password, wipe and import. Dev-server
+# only: see the note in the root mise.toml for why neither this nor the password
+# bypass is global.
+env = { HBOX_DEMO = "true", UNSAFE_DISABLE_PASSWORD_PROJECTION = "yes_i_am_sure" }
+depends = ["//:generate"]
+run = "go run ./app/api/"
+raw_args = true
+
+[tasks."run:postgresql"]
+alias = "go:run:postgresql"
+description = "Starts the backend api server with postgresql (depends on generate task)"
+env = { HBOX_DEMO = "true", UNSAFE_DISABLE_PASSWORD_PROJECTION = "yes_i_am_sure", HBOX_DATABASE_DRIVER = "postgres", HBOX_DATABASE_USERNAME = "homebox", HBOX_DATABASE_PASSWORD = "homebox", HBOX_DATABASE_DATABASE = "homebox", HBOX_DATABASE_HOST = "localhost", HBOX_DATABASE_PORT = "5432", HBOX_DATABASE_SSL_MODE = "disable" }
+depends = ["//:generate"]
+run = "go run ./app/api/"
+raw_args = true
+
+[tasks.ci]
+alias = "go:ci"
+description = "Runs backend API server in CI mode"
+env = { HBOX_DEMO = "true", UNSAFE_DISABLE_PASSWORD_PROJECTION = "yes_i_am_sure" }
+depends = ["//:generate"]
+run = "go run ./app/api/ &"
+
+[tasks."ci:with-frontend"]
+alias = "go:ci:with-frontend"
+description = "Run backend with frontend in CI mode"
+# Ordering matters and is not obvious: the frontend imports lib/api/types, which
+# //:generate produces. Without this edge the only thing pulling generate in is
+# `:ci` at the end of the run list, so the frontend would be built from whatever
+# types happened to be on disk and regenerated afterwards. `//frontend:build`
+# depends on install itself, so it is not repeated here.
+depends = ["//:generate"]
+run = [
+  { task = "//frontend:build" },
+  "cp -r ../frontend/.output/public ./app/api/static/",
+  { task = ":ci" },
+]
+
+# Real Argon2/bcrypt is on here. Measured against the old bypassed lane the whole
+# suite costs 27s instead of 26.5s, so there is nothing to buy by disabling it —
+# and running it everywhere means no password test can be silently excluded.
+# Only -race lanes bypass it; see :coverage.
+[tasks.test]
+alias = "go:test"
+description = "Runs the full Go test suite with real Argon2/bcrypt password hashing - supports passing go test args"
+depends = ["//:generate"]
+run = "go test -count=1 ./..."
+raw_args = true
+
+# Selects by package, never by test name. An earlier version of this task pinned a
+# hand-written -run allowlist of individual test names; because `go test -run` exits
+# 0 when its pattern matches nothing, renaming a test silently dropped it from the
+# only lane running real hashing, and every gate stayed green.
+[tasks."test:password"]
+alias = "go:test:password"
+description = "Runs the security-critical packages with real Argon2/bcrypt and reports their coverage"
+depends = ["//:generate"]
+run = [
+  "go test -count=1 -coverprofile=coverage-password.out -covermode=atomic -cover ./pkgs/hasher ./internal/core/services ./app/api/providers",
+  "go tool cover -func=coverage-password.out | tail -n 1",
+]
+
+# This lane bypasses password protection because -race over argon2 is pathologically
+# slow: 39s bypassed vs 3m00s with real hashing, of which pkgs/hasher alone is 124s.
+# The cost is that the hasher figure here is understated (52.3% vs 84.6%) and the
+# printed total does not reflect the security-critical code. :test:password reports
+# the honest number for those three packages; :check runs both.
+[tasks.coverage]
+alias = "go:coverage"
+description = "Runs the full fast Go suite with password protection bypassed and -race, writes coverage.out, and prints total coverage"
+env = { UNSAFE_DISABLE_PASSWORD_PROJECTION = "yes_i_am_sure" }
+depends = ["//:generate"]
+run = [
+  "go test -race -coverprofile=coverage.out -covermode=atomic ./app/... ./internal/... ./pkgs/... -cover",
+  "go tool cover -func=coverage.out | tail -n 1",
+]
+
+# PostgreSQL variants. These set HBOX_DATABASE_* to point the suite at a live
+# Postgres — start one with:
+#   docker run --rm -e POSTGRES_USER=homebox -e POSTGRES_PASSWORD=homebox \
+#     -e POSTGRES_DB=homebox -p 5432:5432 postgres:17
+#
+# The shared Go test harness reads HBOX_DATABASE_DRIVER. Each test binary gets
+# its own Postgres database, dropped on teardown. Both lanes build their schema
+# from the real goose migrations, so the suite covers internal/data/migrations
+# as well as divergence between the two dialects.
+[tasks."test:postgresql"]
+alias = "go:test:postgresql"
+description = "Runs all go tests against a live PostgreSQL (needs postgres on :5432)"
+env = { UNSAFE_DISABLE_PASSWORD_PROJECTION = "yes_i_am_sure", HBOX_DATABASE_DRIVER = "postgres", HBOX_DATABASE_USERNAME = "homebox", HBOX_DATABASE_PASSWORD = "homebox", HBOX_DATABASE_DATABASE = "homebox", HBOX_DATABASE_HOST = "127.0.0.1", HBOX_DATABASE_PORT = "5432", HBOX_DATABASE_SSL_MODE = "disable" }
+depends = ["//:generate"]
+run = "go test -count=1 ./app/... ./internal/... ./pkgs/..."
+raw_args = true
+
+[tasks."coverage:postgresql"]
+alias = "go:coverage:postgresql"
+description = "Runs all go tests (race + coverage) against a live PostgreSQL (needs postgres on :5432)"
+env = { UNSAFE_DISABLE_PASSWORD_PROJECTION = "yes_i_am_sure", HBOX_DATABASE_DRIVER = "postgres", HBOX_DATABASE_USERNAME = "homebox", HBOX_DATABASE_PASSWORD = "homebox", HBOX_DATABASE_DATABASE = "homebox", HBOX_DATABASE_HOST = "127.0.0.1", HBOX_DATABASE_PORT = "5432", HBOX_DATABASE_SSL_MODE = "disable" }
+depends = ["//:generate"]
+run = [
+  "go test -race -coverprofile=coverage-postgres.out -covermode=atomic ./app/... ./internal/... ./pkgs/... -cover",
+  "go tool cover -func=coverage-postgres.out | tail -n 1",
+]
+
+[tasks.check]
+alias = "go:check"
+description = "Deeper local backend gate: tidy check, lint, build, fast race coverage, then real-password security tests"
+depends = ["//:generate"]
+run = [
+  { task = ":tidy:check" },
+  { task = ":lint" },
+  { task = ":build:ci" },
+  { task = ":coverage" },
+  { task = ":test:password" },
+]
+
+[tasks.mutation]
+alias = "go:mutation"
+description = "Runs local, package-scoped Gremlins mutation testing; pass a package path and optional Gremlins arguments"
+# Gremlins 0.6.0 passes --test-cpu as one malformed argument. Cap its Go
+# subprocesses with GOMAXPROCS until that flag is fixed upstream.
+env = { UNSAFE_DISABLE_PASSWORD_PROJECTION = "yes_i_am_sure", GOMAXPROCS = "2", GOCACHE = "{{config_root}}/../.cache/gremlins-go-build" }
+depends = ["//:generate"]
+run = "gremlins unleash --workers 1 --timeout-coefficient 20"
+raw_args = true
+
+[tasks.tidy]
+alias = "go:tidy"
+description = "Runs go mod tidy on the backend"
+run = "go mod tidy"
+
+[tasks."tidy:check"]
+alias = "go:tidy:check"
+description = "Fails if go.mod/go.sum are out of sync; run :tidy to fix"
+run = "go mod tidy -diff"
+
+# Deliberately NOT cleared: the Go build cache (`go clean -cache`) and the module
+# cache. Both are content-addressed — they cannot go stale, and dropping them costs
+# minutes of rebuild. Run `go clean -cache` by hand if you are chasing suspected
+# toolchain-level corruption.
+#
+# `build/` and `.cache/` sit above this config root because that is where the tasks
+# that write them point: `:build` compiles to `../build/backend` and `:mutation`
+# sets GOCACHE to `../.cache/gremlins-go-build`. They are backend output living at
+# the repo root, so this is what owns removing them.
+[tasks.clean]
+description = "Remove the Go test cache, the golangci-lint cache and backend build output"
+run = """
+set -euo pipefail
+go clean -testcache
+golangci-lint cache clean
+rm -rf \
+  "{{config_root}}/../build" \
+  "{{config_root}}/../.cache/gremlins-go-build" \
+  "{{config_root}}/coverage.out" \
+  "{{config_root}}/coverage-password.out" \
+  "{{config_root}}/coverage-postgres.out"
+"""
+
+[tasks.lint]
+alias = "go:lint"
+description = "Runs golangci-lint and formatter checks"
+depends = ["//:generate"]
+run = [
+  "golangci-lint run ./...",
+  "golangci-lint fmt --diff",
+]
+
+[tasks.all]
+alias = "go:all"
+description = "Runs tidy, lint, and the full suite (real password hashing)"
+depends = ["//:generate"]
+run = [
+  { task = ":tidy:check" },
+  { tasks = [":lint", ":test"] },
+]
+
+[tasks.build]
+alias = "go:build"
+description = "Builds the backend binary"
+depends = ["//:generate"]
+run = "go build -o ../build/backend ./app/api"
+
+[tasks."build:ci"]
+alias = "go:build:ci"
+description = "Builds the backend binary in-place for CI (no -o flag)"
+depends = ["//:generate"]
+run = "go build ./app/api"
+
+# Keeps its `db:` prefix: it names what is generated (ent code), not the directory
+# it lives in, and `//backend:generate` would read as a sibling of `//:generate`.
+[tasks."db:generate"]
+description = "Generate Ent ORM code from schemas and templates"
+dir = "internal/"
+# Absolute ({{config_root}}) on purpose: sources resolve against `dir`, so the
+# old "./internal/data/ent/schema/**/*" matched nothing and this task skipped
+# itself forever, even after a schema change.
+sources = [
+  "{{config_root}}/internal/data/ent/generate.go",
+  "{{config_root}}/internal/data/ent/schema/**/*.go",
+  "{{config_root}}/internal/data/ent/schema/**/*.tmpl",
+]
+outputs = ["{{config_root}}/internal/data/ent/**/*.go"]
+run = "CGO_ENABLED=0 go generate ./..."

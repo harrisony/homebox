@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+#MISE description="Fail when generated output is unstaged or untracked"
+#
+# Ent schemas, handler Swagger comments and the TypeScript contracts are derived
+# from Go source. Committing the source without its output leaves the two out of
+# step, and nothing downstream notices: the backend still builds, the frontend
+# still typechecks against the stale contracts, and the drift only surfaces when
+# someone regenerates and gets a diff they did not write.
+#
+# This is deliberately a pure check. Callers run it after a task that depends on
+# //:generate, then this verifies that regeneration left nothing outside the
+# index. It never regenerates or stages files itself.
+set -uo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$root" || exit 1
+
+# Pathspecs covering every file `mise run //:generate` writes while excluding
+# hand-written sources that live beside generated output.
+#
+# :typescript-types declares a single file, not the directory: `lib/api/types/`
+# also holds the hand-written non-generated.ts, and watching the directory
+# reported edits to it as generated drift.
+#
+# Ent writes throughout `internal/data/ent/`, but `generate.go` and `schema/`
+# are its hand-written inputs. Exclude them from the generated-output check.
+generated=(
+  backend/internal/data/ent
+  ':(exclude)backend/internal/data/ent/generate.go'
+  ':(exclude)backend/internal/data/ent/schema'
+  backend/app/api/static/docs
+  docs/public/api
+  frontend/lib/api/types/data-contracts.ts
+)
+
+# Only unstaged and untracked entries count as drift. A generated file already
+# staged is the commit doing the right thing. Staged-only lines carry a space in
+# the second column ("M ", "A "), which is what the filter drops.
+drift="$(git status --porcelain -- "${generated[@]}" | grep -vE '^[MARCD] ' || true)"
+
+if [ -z "$drift" ]; then
+  echo "generated-check: generated output is staged or unchanged."
+  exit 0
+fi
+
+printf '%s\n' "$drift"
+echo
+echo "generated-check: generated output is unstaged or untracked." >&2
+echo "Review them, stage the intended generated output, and rerun the check." >&2
+exit 1

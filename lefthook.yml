@@ -1,0 +1,20 @@
+no_tty: true
+colors: false
+glob_matcher: doublestar
+
+# The gates for this fork's working branches.
+#
+# Backend Go changes regenerate derived output before linting it. Frontend changes
+# run the frontend gate. Keep these sequential and in this order: backend
+# generation can write types that the frontend gate reads.
+
+pre-commit:
+  parallel: false
+  jobs:
+    - name: backend
+      glob: "backend/**/*.go"
+      run: mise run //backend:lint && mise run //:generated-check
+    - name: frontend
+      glob: "frontend/**"
+      exclude: ["frontend/**/*.md", "frontend/**/*.toml"]
+      run: mise run //frontend:gate

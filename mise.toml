@@ -1,0 +1,235 @@
+monorepo_root = true
+# Monorepo task addressing (`//backend:test`) and `[monorepo].config_roots`.
+min_version = "2026.7.0"
+
+[monorepo]
+config_roots = ["backend", "frontend", "docs"]
+
+[settings]
+# pnpm is installed by corepack from each package.json `packageManager` field.
+# That field stays the single place a pnpm version is written down: pinning pnpm
+# in [tools] as well would give every workspace two versions that can drift, and
+# Corepack resolves the requested version from `packageManager` for each config root.
+node.corepack = true
+
+# Only the tools the ROOT tasks use, plus the two language runtimes every config
+# root inherits. Go tooling lives in backend/mise.toml and browser tooling in
+# frontend tasks and agent exploration both use it, so the root install provisions it.
+[tools]
+go = "1.26"
+node = "24"
+lefthook = "2.1.10"
+"go:github.com/swaggo/swag/cmd/swag" = "latest"
+"npm:swagger2openapi" = "latest"
+"npm:swagger-typescript-api" = "latest"
+"npm:@playwright/cli" = "latest"
+"go:golang.org/x/tools/gopls" = "latest"
+
+# Two variables are deliberately NOT global, because a global applies to every
+# lane including the test suites:
+#
+#   UNSAFE_DISABLE_PASSWORD_PROJECTION turns hashing into a plaintext no-op. As a
+#   global it silently opted the Go suite out of argon2id. It is now set only on
+#   the tasks that want it, so a new test lane gets real hashing by default
+#   instead of having to remember to opt back in.
+#
+#   HBOX_DEMO makes the server reject change-password, reset-password, user
+#   delete, wipe and import with 403 (see V1Controller.isDemo). As a global it
+#   also applied to test:ci, where the integration suite asserts a 204 from
+#   change-password. It is now set only on the dev-server tasks.
+[env]
+# Keep temporary paths short enough for macOS's 104-byte Unix socket limit. Nuxt's
+# Vite socket and Go's Unix-socket listener tests both use the process TMPDIR.
+TMPDIR = "/tmp"
+HBOX_LOG_LEVEL = "debug"
+HBOX_DATABASE_DRIVER = "sqlite3"
+HBOX_DATABASE_SQLITE_PATH = ".data/homebox.db?_pragma=busy_timeout=1000&_pragma=journal_mode=WAL&_fk=1&_time_format=sqlite"
+HBOX_OPTIONS_ALLOW_REGISTRATION = "true"
+HBOX_AUTH_API_KEY_PEPPER = "dev-only-pepper-not-for-production-use-32b+"
+
+[tasks.setup]
+description = "Install backend, frontend, and docs dependencies and git hooks"
+depends = ["//backend:tidy", "//frontend:install", "//docs:install", ":hooks"]
+
+# git keeps hooks in the common dir, which every worktree of this repo shares, so
+# this installs once and gates all of them. Worktrees whose checkout predates
+# lefthook.yml are unaffected: lefthook prints a "no config found" line and exits
+# 0 rather than failing the commit.
+#
+# `lefthook install` bakes the resolved binary path into .git/hooks/pre-commit as
+# a fallback for when lefthook is not on PATH. Re-run this task after changing the
+# lefthook version in [tools], or that fallback points at an install that is gone.
+[tasks.hooks]
+description = "Install the git hooks that gate every commit"
+run = "lefthook install"
+
+[tasks."sync-main"]
+description = "Fast-forward local upstream-main to upstream/main without checking it out"
+run = "mise-tasks/sync-main"
+
+# `mise run --force` only bypasses mise's own sources/outputs freshness check. The
+# tools mise drives keep their own caches, so a plain --force can still hand you a
+# stale result. These tasks are what clear those:
+#
+#   mise run //backend:clean && mise run --force //backend:test
+#
+# Reach for the config root you are actually asking about. This aggregate exists for
+# "clean everything", not as the default — busting the Go test cache through it also
+# costs you a cold Nuxt build. Each subproject task documents what it deliberately
+# keeps.
+[tasks.clean]
+description = "Remove every project's build and test caches"
+depends = ["//backend:clean", "//frontend:clean", "//docs:clean"]
+
+# The whole dev stack in one command. Both halves are long-running and run in
+# parallel, with mise prefixing each line with its task name; Ctrl-C stops both.
+# Open http://localhost:3000 — the Nuxt dev server proxies /api to the Go server
+# on :7745, so the frontend alone is not enough.
+#
+# For an agent, or anything that needs the shell back: use `dev:background`
+# instead, which returns once the API answers.
+[tasks.dev]
+description = "Runs the full dev stack: Go API on :7745 and Nuxt on :3000 (Ctrl-C stops both)"
+run = [{ tasks = ["//backend:run", "//frontend:dev"] }]
+
+# Backend only, on purpose. The Nuxt dev server cannot be backgrounded from inside
+# a mise task: `pnpm dev &` outlives the task's shell, which takes the vite-node
+# socket in $TMPDIR with it, and Nuxt then closes itself with an ENOENT chmod on
+# that socket. Whoever needs a frontend dev server must own it in their own
+# long-running process (`mise run //frontend:dev`). E2E does not need one at all:
+# test:e2e builds the frontend into the backend's static dir and serves both
+# from :7745.
+[tasks."dev:background"]
+description = "Starts the Go API detached on :7745 and returns once it answers (frontend not included)"
+run = [
+  { task = "//backend:ci" },
+  { task = "wait-for-backend" },
+]
+
+# `-x api` matches by exact process name, which is what both a `go run` server and
+# the built backend/api binary are called. It cannot tell yours from anyone's, so
+# it will also stop an API server you started by hand in another terminal.
+[tasks."dev:stop"]
+description = "Stops an API server started by dev:background (kills any process named `api`)"
+run = "pkill -TERM -x api || true"
+
+[tasks.swag]
+description = "Generate Swagger 2.0 and OpenAPI 3 API docs"
+dir = "backend/app/api/static/"
+# swag parses internal/data/repo, which imports the generated ent package, so it
+# MUST run after ent codegen. mise runs every `depends` entry in parallel and
+# ignores list order — listing db:generate first in //:generate's depends would
+# not have ordered anything. Declaring the edge here is what serialises the
+# chain: db:generate -> swag -> typescript-types.
+depends = ["//backend:db:generate"]
+# Sources resolve against `dir`, not the config root, so these MUST be absolute
+# ({{config_root}}) — a relative path here silently matches nothing and the task
+# is then considered up-to-date forever. The docs/ exclusion stops swag's own
+# output (which lives under app/api/) from invalidating the task on every run.
+sources = [
+  "{{config_root}}/backend/app/api/**/*.go",
+  "!{{config_root}}/backend/app/api/static/docs/**",
+  "{{config_root}}/backend/internal/data/**/*.go",
+  "{{config_root}}/backend/internal/core/services/**/*.go",
+  "{{config_root}}/backend/app/tools/typegen/main.go",
+]
+outputs = [
+  "{{config_root}}/backend/app/api/static/docs/docs.go",
+  "{{config_root}}/backend/app/api/static/docs/swagger.json",
+  "{{config_root}}/backend/app/api/static/docs/swagger.yaml",
+  "{{config_root}}/backend/app/api/static/docs/openapi-3.json",
+  "{{config_root}}/backend/app/api/static/docs/openapi-3.yaml",
+  "{{config_root}}/docs/public/api/swagger-2.0.json",
+  "{{config_root}}/docs/public/api/swagger-2.0.yaml",
+  "{{config_root}}/docs/public/api/openapi-3.0.json",
+  "{{config_root}}/docs/public/api/openapi-3.0.yaml",
+]
+run = [
+  "swag init --dir=../,../../../internal/core/services,../../../internal/data/repo --parseDependency",
+  "swagger2openapi --outfile ./docs/openapi-3.json ./docs/swagger.json",
+  "swagger2openapi --yaml --outfile ./docs/openapi-3.yaml ./docs/swagger.json",
+  "cp -r ./docs/swagger.json ../../../../docs/public/api/swagger-2.0.json",
+  "cp -r ./docs/swagger.yaml ../../../../docs/public/api/swagger-2.0.yaml",
+  "cp -r ./docs/openapi-3.json ../../../../docs/public/api/openapi-3.0.json",
+  "cp -r ./docs/openapi-3.yaml ../../../../docs/public/api/openapi-3.0.yaml",
+]
+
+[tasks.typescript-types]
+description = "Generate frontend TypeScript API types from Swagger"
+depends = [":swag"]
+sources = [
+  "{{config_root}}/backend/app/tools/typegen/main.go",
+  "{{config_root}}/backend/app/api/static/docs/swagger.json",
+]
+outputs = ["{{config_root}}/frontend/lib/api/types/data-contracts.ts"]
+run = [
+  "swagger-typescript-api generate --no-client --modular --path ./backend/app/api/static/docs/swagger.json --output ./frontend/lib/api/types",
+  "go run ./backend/app/tools/typegen/main.go ./frontend/lib/api/types/data-contracts.ts",
+]
+
+[tasks.generate]
+description = "Run Ent, Swagger/OpenAPI, and frontend API type generation"
+depends = [":swag", "//backend:db:generate", ":typescript-types"]
+
+# The integration suite drives real signup/login flows; argon2 on every one of
+# them costs minutes for no extra coverage (//backend:test:password is what
+# actually exercises hashing). Demo mode stays OFF: it 403s change-password,
+# which lib/api/__test__/user/user.test.ts asserts a 204 from.
+[tasks."test:ci"]
+description = "Run all frontend Vitest lanes against an isolated SQLite backend (CI only)"
+env = { HBOX_DEMO = "false", UNSAFE_DISABLE_PASSWORD_PROJECTION = "yes_i_am_sure", HBOX_DATABASE_SQLITE_PATH = ".data/test-ci/homebox.db?_pragma=busy_timeout=1000&_pragma=journal_mode=WAL&_fk=1&_time_format=sqlite", HBOX_STORAGE_PREFIX_PATH = ".data/test-ci/storage" }
+# This lane owns the server it starts: it records the PID and stop-api kills
+# exactly that one. `pkill -x api` could not tell this lane's server from a
+# concurrent lane's, another worktree's, or a dev server started by hand.
+#
+# depends_post runs even when the task fails, so a crashed suite still cannot
+# leave a server holding :7745 and the SQLite file.
+#
+# The pidfile travels as an `args` entry, not in `env` above: mise documents
+# task `env` as not being passed to depends (and so depends_post) tasks, so a
+# pidfile sent that way would arrive unset and cleanup would silently no-op.
+depends_post = [{ task = "stop-api", args = [".data/test-ci/api.pid"] }]
+run = [
+  { task = "require-port-free" },
+  { task = "//backend:build:ci" },
+  "mkdir -p .data/test-ci",
+  "backend/api & echo $! >.data/test-ci/api.pid",
+  { task = "wait-for-backend" },
+  { task = "//frontend:test:ci" },
+]
+
+[tasks."test:ci:postgresql"]
+description = "Run all frontend Vitest lanes against an isolated PostgreSQL backend (CI only)"
+env = { HBOX_DEMO = "false", UNSAFE_DISABLE_PASSWORD_PROJECTION = "yes_i_am_sure", HBOX_DATABASE_DRIVER = "postgres", HBOX_DATABASE_USERNAME = "homebox", HBOX_DATABASE_PASSWORD = "homebox", HBOX_DATABASE_DATABASE = "homebox", HBOX_DATABASE_HOST = "127.0.0.1", HBOX_DATABASE_PORT = "5432", HBOX_DATABASE_SSL_MODE = "disable", HBOX_STORAGE_PREFIX_PATH = ".data/test-ci-postgresql/storage" }
+depends_post = [{ task = "stop-api", args = [".data/test-ci-postgresql/api.pid"] }]
+run = [
+  { task = "require-port-free" },
+  { task = "//backend:build:ci" },
+  "mkdir -p .data/test-ci-postgresql",
+  "backend/api & echo $! >.data/test-ci-postgresql/api.pid",
+  { task = "wait-for-backend" },
+  { task = "//frontend:test:ci" },
+]
+
+[tasks."test:e2e"]
+description = "Runs end-to-end test on a live server"
+dir = "frontend"
+run = [
+  { task = "//backend:ci:with-frontend" },
+  { task = "//frontend:e2e:install" },
+  { task = "wait-for-backend" },
+  "TEST_SHUTDOWN_API_SERVER=true E2E_BASE_URL=http://localhost:7745 pnpm exec playwright test -c ./test/playwright.config.ts",
+]
+raw_args = true
+
+[tasks.pr]
+description = "Runs all tasks required for a PR"
+depends = [":generate"]
+# lint:fix REWRITES the files typecheck reads, so the two cannot share a parallel
+# group — that race is why this is three entries and not one. backend:all touches
+# nothing the frontend pass touches, so it overlaps with lint:fix safely.
+run = [
+  { tasks = ["//backend:all", "//frontend:lint:fix"] },
+  { task = "//frontend:typecheck" },
+  { task = ":test:ci" },
+]

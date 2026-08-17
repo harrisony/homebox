@@ -1,0 +1,57 @@
+# Astro/Starlight documentation site (homebox.software). It is a pnpm project of
+# its own, with its own pnpm version in package.json `packageManager`, so it gets
+# its own config root rather than being driven by `cd docs && pnpm ...`.
+#
+# The contributor docs under src/content/docs/en/contribute document these steps;
+# keep the two in step when either changes.
+
+[env]
+_.path = ["{{config_root}}/node_modules/.bin"]
+
+[tasks.install]
+description = "Install documentation dependencies with pnpm"
+run = "pnpm install"
+sources = ["package.json", "pnpm-lock.yaml", "mise.toml"]
+outputs = ["node_modules/.pnpm/lock.yaml"]
+
+[tasks.dev]
+alias = "docs:dev"
+description = "Run the documentation site locally on :4321 (astro's default port)"
+depends = [":install"]
+run = "pnpm run dev"
+
+[tasks.start]
+description = "Start the documentation site locally on :4321"
+depends = [":install"]
+run = "pnpm run start"
+
+[tasks.astro]
+description = "Run the Astro CLI for documentation maintenance commands"
+depends = [":install"]
+run = "pnpm run astro"
+raw_args = true
+
+[tasks.build]
+alias = "docs:build"
+description = "Build the documentation site for production"
+depends = [":install"]
+run = "pnpm run build"
+
+[tasks.preview]
+alias = "docs:preview"
+description = "Serve the production documentation build locally"
+depends = [":build"]
+run = "pnpm run preview"
+
+# Astro's caches, not vitepress's. `.astro` holds generated content-collection types,
+# which is why a stale one shows up as type errors on content that is already correct.
+[tasks.clean]
+description = "Remove the Astro build output and generated types"
+run = """
+set -euo pipefail
+rm -rf \
+  "{{config_root}}/dist" \
+  "{{config_root}}/.astro" \
+  "{{config_root}}/node_modules/.astro" \
+  "{{config_root}}/node_modules/.vite"
+"""
