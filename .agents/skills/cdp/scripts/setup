@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+skill_dir="$(dirname "$script_dir")"
+cli="$skill_dir/sdk/browser-harness-js"
+
+if [ ! -f "$cli" ]; then
+  echo "Error: $cli not found" >&2
+  exit 1
+fi
+
+target_dir="$HOME/.local/bin"
+
+if ! echo ":$PATH:" | grep -q ":$target_dir:"; then
+  mkdir -p "$target_dir"
+  profile=""
+  for f in "$HOME/.zshrc" "$HOME/.bashrc" "$HOME/.profile"; do
+    if [ -f "$f" ]; then
+      profile="$f"
+      break
+    fi
+  done
+  if [ -n "$profile" ] && ! grep -q '\.local/bin' "$profile"; then
+    printf '\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$profile"
+    echo "Added $target_dir to PATH in $profile"
+  fi
+  export PATH="$target_dir:$PATH"
+fi
+
+mkdir -p "$target_dir"
+ln -sf "$cli" "$target_dir/browser-harness-js"
+echo "Linked: $target_dir/browser-harness-js"

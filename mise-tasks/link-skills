@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+#MISE description="Symlink the committed .agents/skills into .claude/skills so agents can load them"
+#
+# Skills are committed under .agents/skills, but agents only discover skills in
+# .claude/skills, and .claude/ is gitignored local state. A fresh clone or a new
+# `git worktree add` therefore has every skill file on disk and loads none of
+# them until this runs.
+#
+# Symlinks, not copies: the target stays whatever the checked-out branch tracks,
+# so switching branches switches skill versions with it. A copy would silently
+# pin the version that happened to be checked out at install time, which is how
+# `npx skills experimental_install` leaves a stale playwright-cli behind.
+set -euo pipefail
+
+root="${MISE_PROJECT_ROOT:?MISE_PROJECT_ROOT unset - run this via mise}"
+src="$root/.agents/skills"
+dest="$root/.claude/skills"
+
+if [ ! -d "$src" ]; then
+  echo "no $src on this branch - nothing to link"
+  exit 0
+fi
+
+mkdir -p "$dest"
+
+# Drop links whose target is gone, so a branch that never had a skill (or one
+# that removed it) does not keep offering a dangling entry.
+find "$dest" -maxdepth 1 -type l ! -exec test -e {} \; -delete
+
+linked=0
+for skill in "$src"/*/; do
+  name=$(basename "$skill")
+  link="$dest/$name"
+  target="../../.agents/skills/$name"
+  [ "$(readlink "$link" 2>/dev/null)" = "$target" ] && continue
+  rm -rf "$link"
+  ln -s "$target" "$link"
+  linked=$((linked + 1))
+done
+
+echo "==> .claude/skills: $linked linked, $(find "$dest" -maxdepth 1 -mindepth 1 | wc -l | tr -d ' ') total"
