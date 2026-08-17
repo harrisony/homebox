@@ -3,38 +3,71 @@ linters:
   default: none
   enable:
     - asciicheck
+    - bidichk
     - bodyclose
+    - canonicalheader
+    - containedctx
     - copyloopvar
     - depguard
     - dogsled
+    - dupl
+    - dupword
+    - durationcheck
     - errcheck
+    - errchkjson
     - errorlint
     - exhaustive
+    - exptostd
+    - fatcontext
     - forbidigo
+    - forcetypeassert
+    - funlen
     - gochecknoinits
     - goconst
     - gocritic
     - gocyclo
+    - godot
     - goprintffuncname
+    - gosec
     - govet
     - ineffassign
+    - intrange
     - misspell
+    - modernize
     - nakedret
+    - nestif
+    - nilerr
+    - nilnesserr
+    - noctx
+    - nolintlint
+    - nosprintfhostport
+    - paralleltest
+    - perfsprint
+    - predeclared
+    - reassign
     - revive
+    - rowserrcheck
     - sqlclosecheck
+    - spancheck
     - staticcheck
     - tagalign
     - testifylint
+    - thelper
     - unconvert
     - unused
+    - usestdlibvars
+    - usetesting
     - whitespace
+    - wsl_v5
     - zerologlint
   settings:
+    dupl:
+      threshold: 100
     depguard:
       rules:
         main:
           deny:
-            - pkg: io/util
+            - pkg: io/ioutil
               desc: |
                 Deprecated: As of Go 1.16, the same functionality is now provided by
                 package io or package os, and those implementations should be
@@ -47,12 +80,23 @@ linters:
         - pattern: ^log\.Fatal.*$
           msg: Do not use log.Fatal - return errors instead
       analyze-types: true
+    funlen:
+      lines: 120
+      statements: 80
     goconst:
       min-len: 5
       min-occurrences: 5
     gocritic:
       enabled-checks:
         - ruleguard
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    paralleltest:
+      # Parallelize tests only when their fixtures are isolated; keep tests that
+      # scan or mutate shared cross-group state serial. dbtest gives each binary
+      # a WAL-backed database, but it does not isolate tests within that binary.
+      ignore-missing-subtests: true
     revive:
       confidence: 3
       severity: warning
@@ -76,13 +120,34 @@ linters:
     rules:
       - path: '(.+)_test\.go'
         linters:
+          # dupl on test code is noise: table-driven and arrange/act/assert
+          # bodies are legitimately repetitive across cases.
+          - dupl
           - forbidigo
+          # gosec on test code is noise: fixture "credentials" (G101), lax
+          # temp-dir perms (G301), etc. are not production security concerns.
+          - gosec
+      - path: pkgs/hasher/password_plumbing_test.go
+        linters:
+          # The real-password lane deliberately keeps memory-hard KDF tests
+          # serial so paralleltest cannot multiply their CPU and RAM cost.
+          - paralleltest
 issues:
   fix: false
+  # Incremental adoption: only flag issues in code changed on this branch
+  # relative to its fork point, so newly-enabled linters don't fire on the
+  # entire legacy tree at once. Uses the merge-base (not HEAD~1) so the gate
+  # covers the whole branch deterministically, regardless of commit count.
+  new-from-merge-base: harrisons-fork-point
 formatters:
   enable:
     - gofmt
+    - gofumpt
+    - goimports
     - swaggo
+  settings:
+    gofumpt:
+      extra-rules: true
   exclusions:
     generated: lax
     paths:
