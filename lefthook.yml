@@ -13,7 +13,12 @@ pre-commit:
   jobs:
     - name: backend
       glob: "backend/**/*.go"
-      run: mise run //backend:lint && mise run //:generated-check
+      # GIT_DIR is unset because git exports it, absolute and without a matching
+      # GIT_WORK_TREE, to hooks running in a linked worktree. The lint task then
+      # runs with cwd=backend/ and git infers the work tree from cwd, so
+      # golangci-lint's new-from-merge-base filter diffs the wrong tree and
+      # silently reports the whole repo instead of the branch.
+      run: env -u GIT_DIR mise run //backend:lint && env -u GIT_DIR mise run //:generated-check
     - name: frontend
       glob: "frontend/**"
       exclude: ["frontend/**/*.md", "frontend/**/*.toml"]
